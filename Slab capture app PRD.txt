@@ -10,6 +10,36 @@ Build a mobile‑first, self‑hosted web app that streamlines publishing one‑
 - No bulk publishing; slab‑by‑slab submission only.  
 - Measurements must be accurate; manual length entry is authoritative and used to extrapolate widths and bdft.  
 - No analytics in v1.
+- No pricing tiers in v1 — flat price-per-bdft per species/character.
+- No app-level auth in v1 — no JWT/login; app relies on HTTPS + trusted network.
+- Single SKU per slab; duplicate SKU publish is blocked.
+- Images are purged after successful publish (retained only while draft/retry).
+- Deploy target: .201, Docker Compose + Caddy.
+
+## Decisions log (2026-08-24, Ty)
+1. Widths: sample 3–5 widths at peaks/troughs of the slab edge (see Open items for the bdft formula).
+2. Fallback chain: ruler shot if readable → manual length entry; from manual length + a top-down photo, derive pixel scale and extrapolate widths.
+3. Ruler is always in inches.
+4. Species/character list = synced from WooCommerce categories (FR25); user sets price-per-bdft per value.
+5. No tiers — price = bdft × price_per_bdft, user override before Woo submission.
+6. All inference models must support vision (species/character detection operates on slab photos).
+7. v1 target store: www.whidbeywoodstore.com.
+8. Aspect ratio: 1:1 (Woo best practice), ≥1000×1000 px, slab centered at ~80% fill.
+9. Same SKU = blocked (simple dedupe).
+10. No app-level auth; Woo API auth = username (consumer key) + app password.
+11. Single FastAPI backend (Node service dropped — Python handles WooCommerce REST).
+12. Images not needed after WooCommerce submission; purged on successful publish.
+13. Deploy on .201; Docker + Caddy preferred.
+14. UATs built after the prototype.
+15. The schema in the Security section is the pricing-rule shape — confirmed.
+16. (Orphan ```md fence fixed.)
+17. Bolt.dev deliverable disregarded — this is a Hermes project.
+18. bdft formula: average of sampled widths → bdft = L × w_avg × t / 12 (accepted 2026-08-24).
+19. No usable top-down photo → manual width entry (accepted 2026-08-24).
+20. Normalized image size: 1600×1600 preferred output, 1000×1000 minimum (accepted 2026-08-24).
+
+## Open items
+- (none — all resolved 2026-08-24; see Decisions log items 18–20)
 
 ## Goals and success metrics
 **Goals**
@@ -45,7 +75,7 @@ Build a mobile‑first, self‑hosted web app that streamlines publishing one‑
 - Fallbacks: If SKU or ruler unreadable, allow manual entry (SKU or length). Manual length is authoritative and used to extrapolate widths and sqft.  
 - Enrich: Species detection (optional inference) or manual selection; character selection (manual or optional inference); thickness manual entry.  
 - Pricing: Apply bdft pricing rules (species + character) to compute price recommendation; allow override.  
-- Photo normalization: Background removal, auto‑crop to ~80% frame fill, enforce theme aspect ratios, optional merchandising filter.  
+- Photo normalization: Background removal, auto‑crop to ~80% frame fill, enforce 1:1 aspect ratio, optional merchandising filter.  
 - Review & publish: Final review screen with full override capability; publish single slab to WooCommerce using App Passwords.  
 - Configuration: Configure OpenAI endpoint, WooCommerce credentials, pricing rules, brand voice, and GEO context.
 
@@ -76,7 +106,7 @@ Build a mobile‑first, self‑hosted web app that streamlines publishing one‑
 - **FR12:** User can override species/character at any time prior to publish.
 
 ### Pricing engine
-- **FR13:** UI to define bdft pricing rules by species and character (price per bdft, optional tiers).  
+- **FR13:** UI to define bdft pricing rules by species and character (flat price per bdft; no tiers in v1). Species/character values come from the synced WooCommerce category list (FR25).  
 - **FR14:** Deterministic bdft calculation and application of pricing rules to produce a price recommendation.  
 - **FR15:** Price recommendation editable by user; final price stored as authoritative.
 
@@ -87,13 +117,14 @@ Build a mobile‑first, self‑hosted web app that streamlines publishing one‑
 
 ### Photo normalization and merchandising
 - **FR19:** Remove green‑sheet background deterministically (RemBG/U²Net or equivalent).  
-- **FR20:** Detect slab boundaries and auto‑crop so slab fills ~80% of frame; enforce theme aspect ratios.  
+- **FR20:** Detect slab boundaries and auto‑crop so slab fills ~80% of frame; enforce 1:1 aspect ratio, slab centered; output 1600×1600 px preferred (1000×1000 minimum).  
 - **FR21:** Store both original and normalized images.  
 - **FR22:** Optional merchandising filter (contrast, warmth, grain enhancement) applied deterministically; toggleable per slab.  
 - **FR23:** Provide photo review UI to reorder, delete, or retake images.
 
 ### WooCommerce sync and taxonomy
-- **FR24:** Authenticate to WooCommerce using App Passwords.  
+- **FR24:** Authenticate to WooCommerce using consumer key (username) + consumer secret (App Password) against www.whidbeywoodstore.com.  
+- **FR24a:** Publish is blocked if the slab SKU already exists in WooCommerce (simple dedupe, no update path in v1).  
 - **FR25:** Sync categories, tags, and attributes from WooCommerce and cache locally.  
 - **FR26:** Auto‑assign taxonomy based on species/character mapping; allow manual override.  
 - **FR27:** Create/update single WooCommerce product per slab with SKU, titles, description, price, categories, attributes, and normalized images.  
@@ -106,7 +137,7 @@ Build a mobile‑first, self‑hosted web app that streamlines publishing one‑
 
 ### Configuration and hosting
 - **FR32:** Settings UI for OpenAI base URL, OpenAI API key, model name, WooCommerce URL, WooCommerce App Password, pricing rules, brand voice, GEO context.  
-- **FR33:** App must be deployable via Docker Compose on Ty’s servers; support HTTPS via Caddy/Traefik.  
+- **FR33:** App deploys via Docker Compose on .201 with Caddy for HTTPS (single domain, reverse proxy to frontend + fastapi).  
 - **FR34:** All secrets stored encrypted at rest; all client‑server traffic over HTTPS.
 
 ## Non‑functional requirements
@@ -127,23 +158,23 @@ Build a mobile‑first, self‑hosted web app that streamlines publishing one‑
 - Camera API for capture and immediate preview
 
 **Server (self‑hosted, containerized)**  
-- FastAPI (Python) for deterministic image pipeline, advanced ruler detection, bdft math, RemBG/U²Net background removal, species/character inference endpoint (optional), and content generation wrapper that calls Ty’s OpenAI endpoint.  
-- Node.js service for WooCommerce REST API integration, taxonomy sync, product creation/update, and logging.  
+- FastAPI (Python) for deterministic image pipeline, advanced ruler detection, bdft math, RemBG/U²Net background removal, species/character inference endpoint (optional), content generation wrapper that calls Ty’s OpenAI endpoint, and WooCommerce REST integration (taxonomy sync, product creation, sync logging) — the Node.js service from the original draft was folded in (see Decision 11).  
 - SQLite for v1 (slab records, pricing rules, taxonomy cache, sync history). Optional Postgres later.
 
 **Inference**  
-- Configurable OpenAI‑compatible endpoint (user supplies base URL and key). Inference limited to species/character detection and optional content refinement. All inference calls logged and include confidence scores.
+- Configurable OpenAI‑compatible endpoint (user supplies base URL and key). **The endpoint/model must support vision** — species/character detection operates on slab photos. Inference limited to species/character detection and optional content refinement. All inference calls logged and include confidence scores.
 
 **Deployment**  
-- Docker Compose with `frontend`, `fastapi`, and `node` services.  
-- Caddy or Traefik for HTTPS and reverse proxy.  
-- Systemd or container supervisor for service management.
+- Docker Compose with `frontend` and `fastapi` services on .201.  
+- Caddy for HTTPS and reverse proxy.  
+- Docker compose as the service supervisor.
 
 **Security**  
 - AES encryption for stored secrets.  
-- JWT for session management (single owner account).  
+- No app-level auth in v1 (single owner; app protected by HTTPS + network trust).  
 - HTTPS enforced.
 
+### Pricing rule schema (confirmed as the pricing-rule shape — Decision 15)
 id: uuid
 species: string
 character: string
@@ -152,7 +183,6 @@ created_at: timestamp
 updated_at: timestamp
 
 
-```md
 ## Key flows and acceptance criteria
 
 ### Capture → Enrich → Publish flow
@@ -162,7 +192,7 @@ updated_at: timestamp
 4. Upload: client uploads draft to server for advanced processing.  
 5. Server processing: advanced ruler detection → pixel→inch scaling → widths inference → bdft calc → species/character inference (optional) → pricing engine → photo normalization → content generation (optional via configured OpenAI endpoint).  
 6. Review: client receives enriched draft; user edits/overrides any field.  
-7. Publish: user triggers publish; Node service syncs taxonomy and creates/updates WooCommerce product with normalized images. Status updated and logged.
+7. Publish: user triggers publish; FastAPI syncs taxonomy and creates the WooCommerce product with normalized images (SKU-deduped per FR24a). Status updated and logged.
 
 ### Acceptance criteria
 - End‑to‑end slab capture to published product works on modern iPhone and Android browsers.  
@@ -172,7 +202,7 @@ updated_at: timestamp
 - Deterministic functions covered by unit tests; inference calls logged and stored for audit.
 
 ## Operational and debugging notes
-- Local dev: Docker Compose with `frontend`, `fastapi`, `node`. Use ngrok for mobile testing.  
+- Local dev: Docker Compose with `frontend` and `fastapi`. Mobile testing over LAN/Tailscale against the Caddy-served domain (no public tunnel needed).  
 - Logging: centralized logs per service; store inference request/response payloads for audit.  
 - Testing: unit tests for deterministic math and image processing; integration tests for WooCommerce sync against a staging store.  
 - Secrets: store App Passwords and OpenAI keys encrypted; rotate keys periodically.  
@@ -180,8 +210,8 @@ updated_at: timestamp
 
 ## Next recommended deliverables
 1. Technical spec for the deterministic image pipeline and ruler→inch math (algorithms and test vectors).  
-2. OpenAPI contract between SvelteKit client and FastAPI/Node services.  
-3. Bolt.dev project skeleton (optional) for UI prototype, with explicit notes on which endpoints must be replaced with deterministic implementations.  
+2. OpenAPI contract between SvelteKit client and FastAPI.  
+3. (Disregarded — this is a Hermes project, not bolt.diy.)  
 4. Deployment playbook (Docker Compose, Caddy, backup, key rotation).
 
 
