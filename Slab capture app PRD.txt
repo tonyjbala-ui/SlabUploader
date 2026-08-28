@@ -1,217 +1,240 @@
 # Slab Capture & WooCommerce Publishing App — PRD
 
 ## Overview
-**Purpose**  
-Build a mobile‑first, self‑hosted web app that streamlines publishing one‑of‑one wood slabs to a WooCommerce store. The app is a field capture → enrichment → publish pipeline that enforces deterministic core logic (measurements, pricing, normalization, sync) and uses inference only in tightly scoped areas (species/character detection and optional content refinement) via a configurable OpenAI‑compatible endpoint.
+Build a mobile-first, self-hosted web app that streamlines publishing one-of-a-one wood
+slabs to a WooCommerce store. The app is a photo capture → calibration → inference →
+publish pipeline.
 
-**Primary constraints**  
-- No slab versioning in v1.  
-- No staff accounts or role complexity in v1.  
-- No bulk publishing; slab‑by‑slab submission only.  
-- Measurements must be accurate; manual length entry is authoritative and used to extrapolate widths and bdft.  
+**Primary constraints**
+- No slab versioning in v1.
+- No staff accounts or role complexity in v1.
+- No bulk publishing; slab-by-slab submission only.
 - No analytics in v1.
-- No pricing tiers in v1 — flat price-per-bdft per species/character.
-- No app-level auth in v1 — no JWT/login; app relies on HTTPS + trusted network.
+- No pricing tiers in v1 — flat price-per-bdft per species/wood-category.
+- No app-level auth in v1 — app relies on HTTPS + trusted network.
 - Single SKU per slab; duplicate SKU publish is blocked.
 - Images are purged after successful publish (retained only while draft/retry).
 - Deploy target: .201, Docker Compose + Caddy.
 
-## Decisions log (2026-08-24, Ty)
-1. Widths: sample 3–5 widths at peaks/troughs of the slab edge (see Open items for the bdft formula).
-2. Fallback chain: ruler shot if readable → manual length entry; from manual length + a top-down photo, derive pixel scale and extrapolate widths.
-3. Ruler is always in inches.
-4. Species/character list = synced from WooCommerce categories (FR25); user sets price-per-bdft per value.
-5. No tiers — price = bdft × price_per_bdft, user override before Woo submission.
-6. All inference models must support vision (species/character detection operates on slab photos).
-7. v1 target store: www.whidbeywoodstore.com.
-8. Aspect ratio: 1:1 (Woo best practice), ≥1000×1000 px, slab centered at ~80% fill.
-9. Same SKU = blocked (simple dedupe).
-10. No app-level auth; Woo API auth = username (consumer key) + app password.
-11. Single FastAPI backend (Node service dropped — Python handles WooCommerce REST).
-12. Images not needed after WooCommerce submission; purged on successful publish.
-13. Deploy on .201; Docker + Caddy preferred.
-14. UATs built after the prototype.
-15. The schema in the Security section is the pricing-rule shape — confirmed.
-16. (Orphan ```md fence fixed.)
-17. Bolt.dev deliverable disregarded — this is a Hermes project.
-18. bdft formula: average of sampled widths → bdft = L × w_avg × t / 12 (accepted 2026-08-24).
-19. No usable top-down photo → manual width entry (accepted 2026-08-24).
-20. Normalized image size: 1600×1600 preferred output, 1000×1000 minimum (accepted 2026-08-24).
+## Decisions log (2026-08-27, Ty)
+1. No calibration photos — user manually enters SKU, length, thickness.
+2. First photo is the measurement photo (must be top-down, lens parallel to broad side).
+3. All photos go through background removal + 80% frame-fill crop.
+4. Output: transparent PNGs, minimum 1600 px on the smaller dimension, aspect ratio preserved.
+5. Green or black sheet — algorithm auto-detects background color from image borders.
+6. WooCommerce categories synced from store: Species (1 required, leaf-only), Wood Category (1+ required, leaf-only).
+7. WooCommerce attributes: Edge Type (1 required), Figure (1+ required), Grade (1+ required), Thickness (1 required, rounded up to nearest Woo attribute range).
+8. WooCommerce tags: fig-* only (1+ required, e.g., fig-chat = Chatoyant).
+9. Two-call inference: Call 1 (vision, wood expert) → Call 2 (text, content gen). Both configurable.
+10. Call 1 runs automatically after calibration. User reviews/corrects before triggering Call 2.
+11. Inference timeout >45s or non-200 → error with retry. User can fill fields manually.
+12. Woo product status set to "published" by default (configurable in settings).
+13. All inference prompts stored server-side, editable in settings with reset-to-default.
+14. Brand voice + GEO context injected into Call 2 prompt.
+15. WooCommerce credentials (username + App Password) stored client-side in settings.
+16. Inference endpoint: configurable OpenAI-compatible API (user provides base URL, key, model).
+17. Test connection verifies text completion + vision support.
+18. Offline capture not required for MVP.
 
 ## Open items
-- (none — all resolved 2026-08-24; see Decisions log items 18–20)
+- (none — all resolved 2026-08-27)
 
 ## Goals and success metrics
 **Goals**
-- Reduce per‑slab prep time (target: 20–30 → 5–10 minutes).  
-- Produce consistent, high‑quality product pages (title, description, taxonomy, images).  
-- Keep deterministic business logic testable and auditable.  
-- Mobile‑first UX with offline capture and fast feedback.  
+- Reduce per-slab prep time (target: 20-30 to 5-10 minutes).
+- Produce consistent, high-quality product pages (title, description, taxonomy, images).
+- Keep deterministic core logic testable and auditable.
+- Mobile-first UX with fast feedback.
 - Allow Ty to host and control inference via a configurable OpenAI endpoint.
 
 **Success metrics**
-- Average time from first photo to published product ≤ 10 minutes.  
-- OCR SKU accuracy ≥ 95% in staged conditions.  
-- Dimension extraction accuracy within ±0.25 in when ruler photo usable.  
-- Photo normalization produces consistent aspect ratio and ~80% frame fill for 95% of inventory photos.  
-- Price recommendation accepted or adjusted by user in ≤ 2 edits for 90% of slabs.
+- Average time from first photo to published product <= 10 minutes.
+- Dimension extraction accuracy within +/- 0.25 in.
+- Photo normalization produces consistent 80% frame fill for 95% of inventory photos.
+- Inference results accepted or corrected by user in <= 2 edits for 90% of slabs.
 
-## Non‑goals
-- Multi‑tenant SaaS or ERP integrations in v1.  
-- Generic SKU inventory management.  
-- Complex user roles or staff permissions.  
-- Bulk import/publish workflows.  
+## Non-goals
+- Multi-tenant SaaS or ERP integrations in v1.
+- Generic SKU inventory management.
+- Complex user roles or staff permissions.
+- Bulk import/publish workflows.
+- Offline capture for MVP.
 
 ## Users and core use cases
 
-**Primary user**  
-- Ty (Owner/Expert): captures, configures pricing rules, reviews and publishes slabs.
-
-**Secondary user**  
-- Field operator (optional): may capture photos and basic data; no special permissions required.
+**Primary user**
+- Ty (Owner/Expert): captures, configures, reviews, and publishes slabs.
 
 **Core use cases**
-- Capture: Stage slab (green sheet, SKU label, ruler), take calibration photos (SKU close‑up, ruler shot), then 1–5 inventory photos.  
-- Fallbacks: If SKU or ruler unreadable, allow manual entry (SKU or length). Manual length is authoritative and used to extrapolate widths and sqft.  
-- Enrich: Species detection (optional inference) or manual selection; character selection (manual or optional inference); thickness manual entry.  
-- Pricing: Apply bdft pricing rules (species + character) to compute price recommendation; allow override.  
-- Photo normalization: Background removal, auto‑crop to ~80% frame fill, enforce 1:1 aspect ratio, optional merchandising filter.  
-- Review & publish: Final review screen with full override capability; publish single slab to WooCommerce using App Passwords.  
-- Configuration: Configure OpenAI endpoint, WooCommerce credentials, pricing rules, brand voice, and GEO context.
+- Capture: Stage slab on green or black sheet with lights, take 1-5 photos.
+- Enter metadata: SKU, length (in), thickness (in).
+- Calibration: App processes first photo - BG removal, longest dimension detection,
+  area measurement (sqft), bdft calc, then processes all photos for BG removal + crop.
+- Inference: Call 1 (vision) auto-runs, populating taxonomy/content. User reviews/corrects.
+  Call 2 (text) user-triggered for title/description/short description.
+- Review & publish: Final review screen with full override capability; publish to WooCommerce.
+- Configuration: Settings for inference endpoint, Woo credentials, pricing rules,
+  brand voice, GEO context, prompts.
 
 ## High level requirements summary
-- Deterministic core: all measurement math, pricing, normalization, and WooCommerce sync must be deterministic and unit‑tested.  
-- Scoped inference: species/character detection and optional content refinement only; inference must be toggleable and use Ty’s configured OpenAI endpoint.  
-- Mobile first: usable on modern iPhone and Android browsers; offline capture and local drafts.  
-- Single slab workflow: no batch publish in v1; each slab is captured, enriched, reviewed, and published individually.
+- Deterministic core: all measurement math, pricing, normalization, and WooCommerce sync
+  must be deterministic and unit-tested.
+- Scoped inference: species/category/attribute detection and content generation only;
+  inference must be toggleable and use Ty's configured OpenAI endpoint.
+- Mobile first: usable on modern iPhone and Android browsers.
+- Single slab workflow: no batch publish in v1; each slab is captured, enriched,
+  reviewed, and published individually.
 
 ## Functional requirements (detailed)
 
 ### Capture and calibration
-- **FR1:** Camera capture for calibration photos (SKU close‑up, ruler shot) and 1–5 inventory photos.  
-- **FR2:** Calibration photos are internal only and never uploaded to WooCommerce.  
-- **FR3:** Client runs deterministic SKU OCR (Tesseract.js) on SKU close‑up; if OCR fails, prompt manual SKU entry.  
-- **FR4:** Client runs lightweight ruler detection (OpenCV.js). If client pass fails, upload ruler photo to server for advanced deterministic processing.  
-- **FR5:** If ruler detection fails or ruler photo missing, prompt manual length entry. Manual length is authoritative; system extrapolates widths using pixel ratios from inventory photos when available.  
-- **FR6:** All capture flows must be offline‑first with local caching and an upload queue.
+- **FR1:** Camera capture for 1-5 inventory photos. First photo must be top-down,
+  lens parallel to the slab's broad side.
+- **FR2:** User manually enters SKU (3-24 chars, [A-Z0-9-]), length (in), thickness (in).
+- **FR3:** App detects background color from image borders (green or black sheet).
+- **FR4:** First photo: BG removal - find longest dimension - compute scale
+  (longest_px / user-length) - compute area (sqft) - bdft = sqft * thickness / 12.
+- **FR5:** All photos: BG removal - crop to 80% frame fill - save as transparent PNG,
+  minimum 1600 px on smaller dimension, aspect ratio preserved.
+- **FR6:** User can retake the first photo or abort and start fresh.
 
-### Dimensions, thickness, and calculations
-- **FR7:** Compute length, one or more widths, sqft, and bdft deterministically.  
-- **FR8:** Thickness is always manually entered and treated as authoritative.  
-- **FR9:** All dimension math must be deterministic, unit‑tested, and reproducible.
+### Dimensions and calculations
+- **FR7:** Compute length (user-entered), area (sqft), and bdft deterministically.
+- **FR8:** Thickness is always manually entered and treated as authoritative.
+- **FR9:** All dimension math must be deterministic, unit-tested, and reproducible.
 
-### Species and character
-- **FR10:** Support species selection via optional inference or manual selection from a controlled list. Inference must return a confidence score; below threshold require manual confirmation.  
-- **FR11:** Character selection is manual by default; optional inference allowed but must be confirmable.  
-- **FR12:** User can override species/character at any time prior to publish.
+### Taxonomy (WooCommerce sync)
+- **FR10:** Sync categories, attributes, and tags from WooCommerce and cache locally.
+- **FR11:** Species category: 1 required, leaf-only selection.
+- **FR12:** Wood Category: 1+ required, leaf-only selection (parents shown for grouping only).
+- **FR13:** Edge Type attribute: 1 required.
+- **FR14:** Figure attribute: 1+ required.
+- **FR15:** Grade attribute: 1+ required.
+- **FR16:** Thickness attribute: 1 required, mapped by rounding up user-entered
+  thickness to nearest Woo attribute range.
+- **FR17:** Tags: fig-* only, 1+ required.
+- **FR18:** Auto-assign taxonomy based on inference results; allow manual override.
 
 ### Pricing engine
-- **FR13:** UI to define bdft pricing rules by species and character (flat price per bdft; no tiers in v1). Species/character values come from the synced WooCommerce category list (FR25).  
-- **FR14:** Deterministic bdft calculation and application of pricing rules to produce a price recommendation.  
-- **FR15:** Price recommendation editable by user; final price stored as authoritative.
+- **FR19:** UI to define bdft pricing rules by species and wood category.
+- **FR20:** Deterministic bdft calculation and application of pricing rules to produce
+  a price recommendation.
+- **FR21:** Price recommendation editable by user; final price stored as authoritative.
 
-### Content generation (scoped inference)
-- **FR16:** Generate title, short title, and description using deterministic templates augmented by optional LLM refinement via Ty’s OpenAI endpoint.  
-- **FR17:** Generated content must be SEO/GEO aligned and reflect configured brand voice; LLM use is optional and toggleable.  
-- **FR18:** All generated content is editable before publish; no automatic publishing of LLM output.
+### Inference (two-call architecture)
+- **FR22:** Call 1 (vision): auto-run after calibration. Input: all inventory photos
+  (downscaled to 1024px max, using original pre-crop photos), user metadata, synced
+  Woo taxonomy. Output: species, wood categories, edge type, figure, grade,
+  character/inclusions/voids/checks with severity, top 3 wood categories with
+  confidence. If no species match above threshold, omit and require manual selection.
+- **FR23:** Call 2 (text): user-triggered after Call 1 curation. Input: deterministic
+  data + Call 1 results + brand voice + GEO context. Output: title, description,
+  short description.
+- **FR24:** Inference prompts stored server-side, editable in settings, reset-to-default available.
+- **FR25:** Progress indicator during inference calls (latency expected).
+- **FR26:** Timeout >45s or non-200 - visible error with retry option.
+- **FR27:** All inference results editable; no automatic publish of LLM output.
+- **FR28:** Inference endpoint configured via settings: base URL, API key, model name.
+  Test connection verifies text + vision support.
 
-### Photo normalization and merchandising
-- **FR19:** Remove green‑sheet background deterministically (RemBG/U²Net or equivalent).  
-- **FR20:** Detect slab boundaries and auto‑crop so slab fills ~80% of frame; enforce 1:1 aspect ratio, slab centered; output 1600×1600 px preferred (1000×1000 minimum).  
-- **FR21:** Store both original and normalized images.  
-- **FR22:** Optional merchandising filter (contrast, warmth, grain enhancement) applied deterministically; toggleable per slab.  
-- **FR23:** Provide photo review UI to reorder, delete, or retake images.
+### Photo normalization and output
+- **FR29:** Background removal: chroma-key for green/black, fallback to U2Net matting.
+- **FR30:** Crop to 80% frame fill, slab centered, aspect ratio preserved,
+  minimum 1600 px on smaller dimension.
+- **FR31:** Output as transparent PNG (ideal for WooCommerce).
+- **FR32:** Store both original and processed images. Purge after successful publish.
 
-### WooCommerce sync and taxonomy
-- **FR24:** Authenticate to WooCommerce using consumer key (username) + consumer secret (App Password) against www.whidbeywoodstore.com.  
-- **FR24a:** Publish is blocked if the slab SKU already exists in WooCommerce (simple dedupe, no update path in v1).  
-- **FR25:** Sync categories, tags, and attributes from WooCommerce and cache locally.  
-- **FR26:** Auto‑assign taxonomy based on species/character mapping; allow manual override.  
-- **FR27:** Create/update single WooCommerce product per slab with SKU, titles, description, price, categories, attributes, and normalized images.  
-- **FR28:** Log sync results and surface errors; store WooCommerce product ID on success.
+### WooCommerce sync and publish
+- **FR33:** Authenticate to WooCommerce using consumer key + App Password.
+- **FR34:** Publish is blocked if the slab SKU already exists (simple dedupe, no update path).
+- **FR35:** Create WooCommerce product with SKU, title, description, short description,
+  price, categories, attributes, tags, and normalized PNG images.
+- **FR36:** Default product status: "published" (configurable in settings).
+- **FR37:** Log sync results and surface errors; store WooCommerce product ID on success.
 
 ### Drafts, review, and publish
-- **FR29:** Maintain a draft slab state with full metadata and photos.  
-- **FR30:** Provide a single review screen showing all fields and normalized images; every field is editable.  
-- **FR31:** Publish action performs deterministic server‑side processing and WooCommerce sync; update status to Published/Failed with error details.
+- **FR38:** Maintain a draft slab state with full metadata and photos.
+- **FR39:** Provide a single review screen showing all fields; every field is editable.
+- **FR40:** Publish action performs deterministic server-side processing and WooCommerce
+  sync; update status to Published/Failed with error details.
 
 ### Configuration and hosting
-- **FR32:** Settings UI for OpenAI base URL, OpenAI API key, model name, WooCommerce URL, WooCommerce App Password, pricing rules, brand voice, GEO context.  
-- **FR33:** App deploys via Docker Compose on .201 with Caddy for HTTPS (single domain, reverse proxy to frontend + fastapi).  
-- **FR34:** All secrets stored encrypted at rest; all client‑server traffic over HTTPS.
+- **FR41:** Settings UI for inference endpoint, Woo credentials, pricing rules,
+  brand voice, GEO context, prompts.
+- **FR42:** App deploys via Docker Compose on .201 with Caddy for HTTPS.
+- **FR43:** All secrets stored encrypted at rest; all client-server traffic over HTTPS.
 
-## Non‑functional requirements
-- **Performance:** Client capture and local OCR within 1–2s; server normalization and inference within 3–5s per slab target.  
-- **Reliability:** Offline capture and queued sync; deterministic logic fully unit‑tested.  
-- **Security:** Encrypted secrets, HTTPS, minimal persistent credentials on client.  
-- **Maintainability:** Clear separation of deterministic code and inference code; modular services.  
-- **Usability:** One‑hand operation, large touch targets, clear distinction between internal and customer photos.
+## Non-functional requirements
+- **Performance:** Client capture and local processing within 1-2s; server normalization
+  within 3-5s per slab; inference calls within 45s.
+- **Reliability:** Deterministic logic fully unit-tested.
+- **Security:** Encrypted secrets, HTTPS, minimal persistent credentials on client.
+- **Maintainability:** Clear separation of deterministic code and inference code.
+- **Usability:** One-hand operation, large touch targets, clear distinction between
+  internal processing and customer-facing output.
 
 ## Architecture and tech stack
 
-**Client (mobile web / PWA)**  
-- SvelteKit (mobile‑first)  
-- TailwindCSS for UI  
-- Tesseract.js for client SKU OCR (deterministic)  
-- OpenCV.js for lightweight ruler detection and preview cropping  
-- IndexedDB for offline drafts and photo caching  
+**Client (mobile web / PWA)**
+- SvelteKit (mobile-first)
+- TailwindCSS for UI
 - Camera API for capture and immediate preview
+- No OCR, no OpenCV on client
 
-**Server (self‑hosted, containerized)**  
-- FastAPI (Python) for deterministic image pipeline, advanced ruler detection, bdft math, RemBG/U²Net background removal, species/character inference endpoint (optional), content generation wrapper that calls Ty’s OpenAI endpoint, and WooCommerce REST integration (taxonomy sync, product creation, sync logging) — the Node.js service from the original draft was folded in (see Decision 11).  
-- SQLite for v1 (slab records, pricing rules, taxonomy cache, sync history). Optional Postgres later.
+**Server (self-hosted, containerized)**
+- FastAPI (Python) for deterministic image pipeline, bdft math, pricing,
+  background removal, crop/normalize, WooCommerce REST integration,
+  inference wrappers, taxonomy sync
+- SQLite for v1 (slab records, pricing rules, taxonomy cache, sync history)
 
-**Inference**  
-- Configurable OpenAI‑compatible endpoint (user supplies base URL and key). **The endpoint/model must support vision** — species/character detection operates on slab photos. Inference limited to species/character detection and optional content refinement. All inference calls logged and include confidence scores.
+**Inference**
+- Configurable OpenAI-compatible endpoint (user supplies base URL, key, model).
+  Must support vision. Two calls: wood expert (vision) + content generation (text).
+  All inference calls logged.
 
-**Deployment**  
-- Docker Compose with `frontend` and `fastapi` services on .201.  
-- Caddy for HTTPS and reverse proxy.  
-- Docker compose as the service supervisor.
+**Deployment**
+- Docker Compose with frontend and fastapi services on .201.
+- Caddy for HTTPS and reverse proxy.
 
-**Security**  
-- AES encryption for stored secrets.  
-- No app-level auth in v1 (single owner; app protected by HTTPS + network trust).  
+**Security**
+- AES encryption for stored secrets.
+- No app-level auth in v1.
 - HTTPS enforced.
 
-### Pricing rule schema (confirmed as the pricing-rule shape — Decision 15)
+### Pricing rule schema
 id: uuid
 species: string
-character: string
+wood_category: string
 price_per_bdft: float
 created_at: timestamp
 updated_at: timestamp
 
-
 ## Key flows and acceptance criteria
 
-### Capture → Enrich → Publish flow
-1. New slab: user stages slab and opens app.  
-2. Calibration: take SKU close‑up and ruler shot (internal only). Client runs SKU OCR and lightweight ruler detection. If either fails, prompt manual SKU or length. Manual length is authoritative.  
-3. Inventory photos: capture 1–5 customer‑facing photos. Client stores originals locally.  
-4. Upload: client uploads draft to server for advanced processing.  
-5. Server processing: advanced ruler detection → pixel→inch scaling → widths inference → bdft calc → species/character inference (optional) → pricing engine → photo normalization → content generation (optional via configured OpenAI endpoint).  
-6. Review: client receives enriched draft; user edits/overrides any field.  
-7. Publish: user triggers publish; FastAPI syncs taxonomy and creates the WooCommerce product with normalized images (SKU-deduped per FR24a). Status updated and logged.
+### Capture -> Calibrate -> Infer -> Publish flow
+1. New slab: user stages slab and opens app.
+2. Capture: take 1-5 inventory photos.
+3. Enter metadata: SKU, length, thickness.
+4. Calibration: server processes first photo (BG removal, area, bdft),
+   processes all photos (BG removal, crop, PNG).
+5. Inference: Call 1 auto-runs (vision), populating taxonomy/content.
+   User reviews/corrects. Call 2 user-triggered (text), generating
+   title/description/short description.
+6. Review: user edits/overrides any field.
+7. Publish: user triggers publish; FastAPI syncs taxonomy, creates
+   WooCommerce product, purges images. Status updated and logged.
 
 ### Acceptance criteria
-- End‑to‑end slab capture to published product works on modern iPhone and Android browsers.  
-- Manual length override correctly recalculates widths, sqft, and bdft.  
-- Photo normalization produces theme‑compliant images with slab occupying ~80% frame in 95% of tests.  
-- WooCommerce product created with normalized images and correct taxonomy mapping.  
-- Deterministic functions covered by unit tests; inference calls logged and stored for audit.
+- End-to-end slab capture to published product works on modern iPhone and Android browsers.
+- Area measurement accuracy within +/- 0.25 in^2.
+- Photo normalization produces 80% frame fill, transparent PNG, 1600px min on smaller dim.
+- WooCommerce product created with normalized images, correct taxonomy, and correct content.
+- Deterministic functions covered by unit tests; inference calls logged.
 
 ## Operational and debugging notes
-- Local dev: Docker Compose with `frontend` and `fastapi`. Mobile testing over LAN/Tailscale against the Caddy-served domain (no public tunnel needed).  
-- Logging: centralized logs per service; store inference request/response payloads for audit.  
-- Testing: unit tests for deterministic math and image processing; integration tests for WooCommerce sync against a staging store.  
-- Secrets: store App Passwords and OpenAI keys encrypted; rotate keys periodically.  
-- Monitoring: health endpoints and job queue visibility for image normalization and publish tasks.
-
-## Next recommended deliverables
-1. Technical spec for the deterministic image pipeline and ruler→inch math (algorithms and test vectors).  
-2. OpenAPI contract between SvelteKit client and FastAPI.  
-3. (Disregarded — this is a Hermes project, not bolt.diy.)  
-4. Deployment playbook (Docker Compose, Caddy, backup, key rotation).
-
-
+- Local dev: Docker Compose with frontend and fastapi. Mobile testing over LAN/Tailscale.
+- Logging: centralized logs per service; inference request/response payloads stored for audit.
+- Testing: unit tests for deterministic math and image processing; integration tests
+  for WooCommerce sync against a staging store.
+- Secrets: store App Passwords and inference keys encrypted; rotate keys periodically.
+- Monitoring: health endpoints and job queue visibility.

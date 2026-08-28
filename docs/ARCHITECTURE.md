@@ -1,174 +1,137 @@
 # Architecture
 
-Status: SPEC · 2026-08-24 · SlabUploader
-Companion to: PRD (root), TECH-SPEC-PIPELINE.md, DATA-MODEL.md, OPENAPI.md, DEPLOYMENT.md.
+Status: SPEC · 2026-08-27 · SlabUploader  
+Locked so far: topology C (hybrid), swimlane, what-runs-where. Remaining sections TBD.
 
-## 1. Service topology (2 containers + 1 reverse proxy)
+Companion: PRD (root), TECH-SPEC-PIPELINE.md.
 
-Per Decision 11 the original Node service is folded into FastAPI. Final v1 topology:
+## 1. Topology (hybrid)
 
-```
-                        ┌──────────────────────────────────────────┐
-  mobile (PWA)          │              .201 host                    │
- ┌──────────────┐ HTTPS │  ┌─────────┐        ┌──────────────────┐  │
- │  SvelteKit   │───────┼─▶│  Caddy  │───────▶│  frontend (nginx │  │
- │  browser     │       │  │  :443   │  :5173 │  static + /api   │  │
- │  IndexedDB   │       │  │  slab.* │  ─────▶│  proxy)         │  │
- │  camera API  │       │  └─────────┘        └──────────────────┘  │
- └──────────────┘       │                          │ /api → :8000  │
-        │  (offline:    │                          ▼               │
-         all local)     │                   ┌──────────────────┐   │
-                        │                   │  fastapi         │   │
-                        │                   │  :8000           │   │
-                        │                   │  ┌────────────┐  │   │
-                        │                   │  │ pipeline   │  │   │
-                        │                   │  │ (determin. │  │   │
-                        │                   │  └────────────┘  │   │
-                        │                   │  ┌────────────┐  │   │
-                        │                   │  │ woo client │  │   │
-                        │                   │  └────────────┘  │   │
-                        │                   │  ┌────────────┐  │   │
-                        │                   │  │ inference  │  │   │
-                        │                   │  └────────────┘  │   │
-                        │                   └───────┬──────────┘   │
-                        │                           │              │
-                        │        SQLite + image vols (named volumes)│
-                        └──────────────────────────────────────────┘
-                                          │ (configurable OpenAI-compat
-                                          ▼  vision endpoint, e.g. .202)
-```
-
-- **frontend** — SvelteKit (SSG/SPA mode) + Tailwind. Built to static, served by an
-  nginx container. Pure client app; talks to `/api` on the same origin. No build-time
-  secrets. This is the PWA (SW + IndexedDB).
-- **fastapi** — one Python service owning: deterministic image pipeline, bdft math,
-  pricing engine, WooCommerce REST client, taxonomy sync, inference wrapper,
-  content generation. SQLite + image storage in named volumes.
-- **caddy** — reverse proxy + automatic HTTPS. Fronts `frontend` and routes `/api`
-  to `fastapi`. No separate Traefik/systemd — compose is the supervisor (Decision 13).
-
-No message broker in v1. Long jobs (normalization, publish) run in-process via a
-small background worker (FastAPI `BackgroundTasks` + a lightweight in-process queue,
-or `arq` on SQLite/Redis only if needed). See §6.
-
-## 2. Client/server split (authoritative vs hint)
-
-Per TECH-SPEC §1.5: the client runs a *light* pass for instant feedback; the server
-runs the *authoritative* pass. Stored and published values are always the server's.
-
-| Capability | Client (hint) | Server (authoritative) |
-|---|---|---|
-| SKU OCR | Tesseract.js (accept/manual) | re-run; on mismatch surface both, user picks |
-| Ruler scale | OpenCV.js quick check | full tick detection + cross-check |
-| Widths / bdft | none (needs server geometry) | full pipeline |
-| Green removal / crop | preview only | full normalization |
-| Species/character | none | inference (vision) + manual |
-| Pricing | none | pricing engine |
-| Content (title/desc) | none | templates + optional LLM |
-
-The client never publishes. Only the server writes to WooCommerce (FR24/FR27).
-
-## 3. Offline-first PWA (Decision: full offline per PRD)
-
-### 3.1 What lives on the client (IndexedDB)
-- **Draft slabs**: full metadata (all review-screen fields) + photo blobs
-  (originals). Calibration photos included. IndexedDB object stores:
-  `slabs`, `photos` (blob), `syncQueue`.
-- **Service Worker**: precache app shell (SvelteKit build). API is *not* cached —
-  network-first for API, but the capture flow itself needs no network.
-
-### 3.2 Capture → queue → sync flow
-1. Capture is fully offline: photos → IndexedDB, OCR/ruler hints run locally.
-2. Draft persists to IndexedDB after every step (no "save" button — always saved).
-3. **Upload queue**: when online, the PWA pushes pending drafts (metadata + photo
-   blobs) to `POST /api/slabs/{id}/upload`. Server runs the authoritative pipeline,
-   returns the enriched draft. Client merges enriched values, marks synced.
-4. **Publish** is always an online action (needs Woo). If offline, the slab stays
-   `ready`; publish is enabled when connectivity returns.
-5. Reconciliation: each draft carries a `client_rev` (monotonic int). Server rejects
-   an upload whose `client_rev` < the stored rev for that slab (stale). Conflict
-   surfaces in UI for the user to resolve. v1 has a single owner, so conflicts are
-   rare; the mechanism is there for correctness.
-
-### 3.3 Connectivity detection
-`navigator.onLine` + a lightweight `GET /api/health` probe. UI shows offline banner
-and disables publish. No hard dependency on either — capture works regardless.
-
-## 4. Data flow (happy path)
+Phone does the happy-path pipeline (mask, length axis, sqft/bdft, 3:4 PNG).  
+FastAPI stores drafts, runs U2Net only on demand, proxies inference, talks to Woo.  
+reverse proxy terminates HTTPS.
 
 ```
-[client] capture (offline)
-   → OCR SKU (hint) / ruler (hint) / 1–5 photos → IndexedDB draft (rev=1)
-[online] PWA → POST /api/slabs            {draft, rev=1}
-        POST /api/slabs/{id}/upload       {photo blobs}
-[server] authoritative pipeline:
-   ruler→scale → geometry → widths → bdft → species/char (inference, opt)
-   → pricing → normalization → content (opt LLM)
-   → store enriched draft (status=review, rev=2), store original+normalized images
-[client] GET /api/slabs/{id} → review screen (all fields editable)
-[client] PUT /api/slabs/{id}             {overrides, rev=2}
-[client] POST /api/slabs/{id}/publish
-[server] taxonomy sync (if needed) → Woo create (draft/pending) → store woo_product_id
-   → status=published → purge images (Decision 12)
+phone (SvelteKit)
+  capture, mask, sliders, length axis, sqft/bdft, 3:4 PNG
+  if mask still bad → POST one photo → FastAPI U2Net → mask back → user continues
+
+server
+  reverse proxy → frontend (static)
+        → fastapi : store, settings, prompts, taxonomy, Woo, inference proxy, U2Net
 ```
 
-## 5. Determinism boundary
+- Happy path never leaves the phone.
+- U2Net is explicit “Try harder” (or coverage failure), not every slab.
+- Woo + LLM keys stay on the server. Browser does not call Woo or the vision endpoint directly.
 
-Everything left of the "inference" and "content" boxes is deterministic and unit-
-tested (PRD "Deterministic core"). The two inference-touching paths are:
-- species/character detection (vision) — toggleable, returns confidence
-- optional content refinement (text LLM) — toggleable
+## 2. Swimlane
 
-Both are wrapped so that toggling them OFF leaves a fully functional deterministic
-app. The app must pass its entire test suite with inference disabled.
+```mermaid
+flowchart TB
+  subgraph Phone["Phone — SvelteKit"]
+    P1[New Wood: 1–5 photos]
+    P2[BG overlay + sheet / sensitivity / edge / feather]
+    P3{Edge OK?}
+    P4[Length axis overlay — rotate / confirm]
+    P5[User length + thickness + SKU]
+    P6[sqft, bdft, 6in widths, 3:4 PNGs]
+    P7[Review Call 1 fields]
+    P8[Tap Generate text]
+    P9[Review title / desc — publish]
+  end
 
-## 6. Concurrency & jobs
+  subgraph API["server — FastAPI"]
+    A1[U2Net: one photo in, mask out]
+    A2[Store draft: originals + PNGs + numbers]
+    A3[Call 1 proxy — vision]
+    A4[Call 2 proxy — text]
+    A5[Woo: taxonomy, SKU check, create product]
+  end
 
-- v1 is single-owner, single-slab workflow (no bulk). Concurrency is minimal.
-- Long ops (normalization ~3–5s, publish with image upload) use FastAPI
-  `BackgroundTasks` + a per-slab status field (`processing`/`ready`/`publishing`/
-  `published`/`failed`). Client polls `GET /api/slabs/{id}` (short, exponential backoff).
-- If a job dies, the slab is `failed` with a reason; re-publish is idempotent by
-  SKU-dedupe (FR24a) — but v1 has no update path, so a failed publish that already
-  created the Woo product is surfaced for manual handling (see IMPL-PLAN risk).
-- No external broker (Redis) in v1. If the in-process queue proves insufficient,
-  add `arq` + a single Redis container — a documented, reversible extension.
+  subgraph LLM["Your OpenAI-compatible endpoint"]
+    L1[Wood expert — all photos at 1024]
+    L2[Title / desc / short desc]
+  end
 
-## 7. Security (Decision 10, PRD Security)
+  subgraph Woo["WooCommerce store"]
+    W1[Categories / attributes / fig-* tags]
+    W2[New product live or draft per setting]
+  end
 
-- No app-level auth. App is reachable only on the trusted LAN/Tailscale
-  (domain `slab.tyubumini.local`). HTTPS enforced by Caddy.
-- Secrets (Woo consumer key/secret, inference key, AES master key) stored encrypted
-  at rest (AES-GCM) in SQLite; the AES key itself is an env var injected by compose,
-  never in the DB. Config is editable via the Settings UI (FR32) but values are
-  re-encrypted on save.
-- Client stores no persistent secrets. The PWA needs none — all secrets server-side.
-- All client↔server traffic HTTPS.
+  P1 --> P2 --> P3
+  P3 -->|no — Try harder| A1
+  A1 --> P2
+  P3 -->|no — Retake| P1
+  P3 -->|yes| P4 --> P5 --> P6
+  P6 --> A2
+  A2 --> A3 --> L1 --> A3 --> P7
+  P7 --> P8 --> A4 --> L2 --> A4 --> P9
+  P9 --> A5
+  A5 --> W1
+  A5 --> W2
+```
 
-## 8. Deployment target
+## 3. Clarifications
 
-- Host: **.201** (no inference there; inference is a remote configurable endpoint).
-- Stack: Docker Compose (`frontend`, `fastapi`) + Caddy (container or host-managed —
-  see DEPLOYMENT.md). Domain: `slab.tyubumini.local` (Decision: LAN/Tailscale only).
-- Named volumes: `slab_db` (SQLite), `slab_images` (original+normalized). Backed up
-  per DEPLOYMENT.md.
+1. **Happy path** stays on the phone through PNG + numbers. FastAPI is idle until the user has a confirmed mask (or taps Try harder).
+2. **Try harder** is U2Net on **one photo** (the one on screen). Mask comes back; sliders still apply. Not a full re-pipeline on the server.
+3. **Draft upload** sends **originals + processed PNGs + length/thickness/SKU/sqft/bdft/widths**. Originals are needed if Call 1 or a later retry must not depend on the tab still being open. After successful Woo publish, server deletes both.
+4. **Call 1** is server-side so the vision key never sits in the browser. Body: all originals downscaled to 1024 + Woo taxonomy snapshot + SKU/length/thickness. Timeout 45s → error + retry on the phone. User **must** curate before Call 2.
+5. **Call 2** does not auto-fire. User taps Generate text. Server sends curated Call 1 + deterministic numbers + brand/GEO + prompt.
+6. **Woo** is only FastAPI. Browser never sees the App Password. Duplicate SKU → stop, show error, no edit-same-SKU in MVP.
+7. **Settings** (species $/bdft, prompts, endpoint, Woo, publish status) live on the server; the phone is just the form.
 
-## 9. Extensibility (documented, not built)
+## 4. What runs where
 
-- Postgres swap for SQLite (DATA-MODEL keeps the schema portable).
-- Redis/arq if job volume grows.
-- Update path for existing Woo products (v2; v1 is create-only by SKU dedupe).
-- Multi-slab bulk (explicit non-goal v1).
-- Staff accounts/roles (explicit non-goal v1).
-
-## 10. Tech stack (pinned intent — exact versions at scaffold)
-
-| Layer | Choice |
+| Job | Where |
 |---|---|
-| Client | SvelteKit, TailwindCSS, Tesseract.js, OpenCV.js, IndexedDB, Camera API, Workbox/SW |
-| Server | Python 3.12, FastAPI, Pydantic v2, OpenCV (cv2), numpy, Pillow, RemBG/U²Net (onnx), httpx |
-| Woo | WooCommerce REST v3 via httpx (consumer key/secret, Basic auth) |
-| DB | SQLite (stdlib `sqlite3` or SQLAlchemy; see DATA-MODEL) |
-| Inference | OpenAI-compatible client (configurable base_url/key/model; must be vision-capable) |
-| Proxy/HTTPS | Caddy |
-| Packaging | Docker Compose |
+| Camera, 1-5 photos | Client |
+| Sheet detect, chroma-key / black threshold, sliders, flood-fill | Client |
+| U2Net | Server, on demand |
+| Length axis overlay, 6" widths, sqft, bdft | Client |
+| 3:4 PNG, 80% fill | Client |
+| Draft + originals + processed PNGs | Server (after user continues) |
+| Species $/bdft, Woo creds, prompts, brand/GEO | Server |
+| Call 1 (vision, all photos @1024) | Server proxy |
+| Call 2 (title/desc) | Server proxy, after Call 1 curation |
+| Woo taxonomy sync + publish | Server |
+
+## 5. Secrets and settings
+
+**Server-side only (never in browser JS):**
+1. WooCommerce consumer key + consumer secret (App Password). Server uses HTTP Basic Auth to call `/wp-json/wc/v3/`. Stored encrypted at rest in SQLite (AES-GCM).
+2. Inference endpoint base URL + API key. Stored encrypted. Server proxies all inference calls.
+3. AES master key. Env var on server, never in the DB.
+
+**Browser-side (no secrets):**
+1. User preferences: sheet mode, sensitivity, edge offset, feather. Persisted in localStorage, reset-to-default available.
+2. Species list with $/bdft. Read from server settings sync.
+3. Taxonomy snapshot (categories, attributes, tags). Read from server. No auth needed.
+
+**Flow:**
+1. User enters Woo credentials in Settings UI on the phone.
+2. Browser POSTs them to `/api/settings` on FastAPI. Server stores encrypted.
+3. Server syncs taxonomy from Woo, caches in SQLite.
+4. Client reads taxonomy from `/api/admin/taxonomy` — no auth needed.
+5. All Woo calls go server-to-woo. Browser never calls Woo REST directly.
+
+This is the canonical WooCommerce App Password integration pattern. Browser-to-Woo REST requires CORS configuration on the Woo site, which is not under your control.
+
+## 6. Status machine
+
+```
+draft → calibrated → ready → publishing → published
+         │              │                ↑
+         └→ failed  ────┴────────────────┘ (woo_product_id set)
+any → failed (with error)
+```
+
+1. **draft** — user took photos, no mask confirmed yet.
+2. **calibrated** — user confirmed the BG edge, confirmed length axis, entered length/thickness/SKU. Client computed sqft/bdft/widths. Draft uploaded to server.
+3. **ready** — all mandatory fields populated (species, wood category, edge type, figure, grade, thickness, price, title/desc/short desc, at least one photo). Values can come from Call 1, manual entry, or a mix. Inference is optional; the user can fill everything by hand and go straight to ready.
+4. **publishing** — Woo create in flight. Poll for result.
+5. **published** — Woo product created, woo_product_id stored. Images purged.
+6. **failed** — pipeline, inference, or publish error. Error detail stored. Retry available.
+
+Call 1 and Call 2 are assist-only. They do not gate the flow. If the user skips inference, the path is: calibrated → ready → publishing → published.
