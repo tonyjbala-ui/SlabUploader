@@ -75,15 +75,17 @@ Rebuilds the cache table (delete + insert, single transaction). Returns counts.
 Failure → `502 woo_error`; previous cache retained (never delete-then-fail).
 
 ### 2.3 Auto-assign taxonomy (FR26)
-- **Category**: species value is matched to a Woo category by name (case-insensitive,
-  trimmed). Match → that category id. No match → the slab's `category_override`
-  (user picks in review) or empty (Woo required-field validation will surface it).
-- **Tags**: `[character]` plus optional `[species]` if present as a tag.
-  Call 1 feat-* observations are mapped to Woo feat-* tags (e.g., Crack/Check,
-  Resin Ready). WooCommerce is authoritative for tag definitions.
-- **Attributes**: species/character/length/thickness as product attributes if the
-  corresponding Woo attributes exist in the cache (by name). Missing attributes are
-  skipped, not created (v1: no attribute creation).
+- **Categories**: species leaf category (1 required) plus wood-category leaf ids (1+).
+  Match by name against the synced Woo category cache (case-insensitive, trimmed).
+  No match → user override in review, or empty (Woo required-field validation surfaces it).
+- **Tags**: `fig-*` only for figure tags (1+ required) and `feat-*` only for feature tags
+  (0+). Call 1 free-text observations (character / inclusions / voids / checks) map to
+  existing Woo `feat-*` tags. Do not invent generic character or species product tags.
+  WooCommerce is authoritative for tag definitions.
+- **Attributes**: the five locked Woo attributes only — Edge Type, Figure, Grade,
+  Thickness, Moisture — using term ids from the cache. Do not publish species, character,
+  length, or free-text thickness as product attributes. Missing attributes are skipped,
+  not created (v1: no attribute creation).
 - Every assignment is overridable in the review screen (FR26).
 
 ### 2.4 Product create payload (FR27)
@@ -98,7 +100,7 @@ Failure → `502 woo_error`; previous cache retained (never delete-then-fail).
   "description": "{description}",
   "short_description": "{short_title}",
   "categories": [ { "id": <species category id> } ],
-  "tags": [ { "id": <char tag id> }, … ],
+  "tags": [ { "id": <fig-* tag id> }, { "id": <feat-* tag id> }, … ],
   "images": [
     { "src": "<data URL or pre-uploaded attachment URL>", "alt": "{species} {character} slab" }
   ],
@@ -110,15 +112,17 @@ Failure → `502 woo_error`; previous cache retained (never delete-then-fail).
 ```
 **Image upload strategy** (Woo v3): `images[].src` accepts a URL or a data URL.
 For reliability the server:
-1. For each customer-facing (inventory, normalized) photo in `seq` order:
-   `POST /media` with the JPEG bytes → get attachment `source_url`.
-2. Reference those `source_url` values in `images` (≤5, per PRD 1–5 inventory photos).
-3. Calibration photos are excluded (FR2).
+1. For each customer-facing inventory photo in `seq` order (processed transparent PNGs
+   from the client TECH-SPEC path): `POST /media` with the **PNG bytes** → get attachment
+   `source_url`. Woo accepts `image/*`; keep alpha. Do not re-encode to JPEG and drop alpha.
+2. Reference those `source_url` values in `images` (≤5 inventory photos).
+3. Only `kind=inventory` photos. Calibration photos do not exist in this design.
 
 **Status** comes from Settings key **`woo_create_status`** (`draft` | `publish`, default
-**`draft`**). UAT on PROD uses Woo **draft** plus SKU prefix `SLAB-UAT-*` (hard rule:
-`SLAB-UAT-*` always creates as Woo draft even if Settings say publish). Flip to
-`publish` only for intentional live inventory after Ty review. Do not conflate with
+**`draft`**). Woo **safety policy** (UAT draft default, `SLAB-UAT-*` force draft even when
+Settings say publish, no edit-same-SKU, purge originals + processed images after successful
+publish) is owned by **AGENTS.md §5**. This file owns payload shape and publish sequence
+only. Do not diverge from AGENTS on force-draft. Do not conflate Woo create status with
 slab lifecycle status `published` (means Woo create succeeded locally).
 
 ### 2.5 Dedupe & idempotency (FR24a)
@@ -142,9 +146,9 @@ Before create: `GET /products?sku={sku}`.
 2. dedupe by SKU (GET /products?sku=)            → 409 duplicate_sku if exists
 3. (re)sync taxonomy if cache older than 1h       → best-effort; use existing cache on fail
 4. resolve category/tags/attributes (auto-assign + overrides)
-5. upload normalized inventory images → media     → source_urls
-6. POST /products (status=woo_create_status)      → woo_product_id
-7. write sync_log(success), set slab published, purge images
+5. upload processed PNG inventory images → media  → source_urls
+6. POST /products (status per AGENTS §5 + woo_create_status) → woo_product_id
+7. write sync_log(success), set slab published, purge originals + processed images
    on any failure at 2–6: write sync_log(failed), slab=failed, (images retained for retry)
 ```
 

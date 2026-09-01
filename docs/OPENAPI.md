@@ -128,11 +128,10 @@ the call returns. WooCommerce is the authoritative source for `feat-*` definitio
   "brand_voice": "...", "geo_context": "...",
   "woo_create_status": "draft",
   "aspect_ratio": "3:4", "output_px": 1600, "output_px_min": 1600,
-  "fill_target": 0.80,
-  "user_sensitivity": 0.5, "user_edge_offset": 0, "user_feather": 1,
-  "user_sheet_mode": "auto" }
+  "fill_target": 0.80 }
 ```
 Secrets (keys) are never returned. Only a `*_configured` boolean.
+Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 
 ---
 

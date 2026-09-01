@@ -4,7 +4,7 @@ Status: SPEC · 2026-08-27 · SlabUploader
 Storage: single SQLite file. Schema portable to Postgres.
 
 Conventions:
-- IDs: client-generated UUIDv4 for slabs so the PWA can reference a slab before it exists server-side.
+- IDs: client-generated UUIDv4 for slabs so the SvelteKit client can reference a slab before it exists server-side.
 - Timestamps: UTC ISO-8601 TEXT.
 - Soft state via status column; no hard deletes for slabs (audit).
 - Money: float64 USD, rounded half-up to cents at write.
@@ -174,19 +174,25 @@ authoritative source for tag definitions; this table caches synced Woo tags.
 | `value_enc` | BLOB | AES-GCM ciphertext |
 | `updated_at` | TEXT | |
 
-Keys:
+Keys (server settings; secrets encrypted at rest):
 - `woo_base_url`, `woo_consumer_key`, `woo_consumer_secret`
 - `inference_base_url`, `inference_api_key`, `inference_model`
 - `inference_enabled`, `content_llm_enabled`
 - `brand_voice`, `geo_context`
-- `woo_create_status` ('draft' | 'publish'), default `draft` — Woo product create status; not slab lifecycle
+- `woo_create_status` ('draft' | 'publish'), default `draft` — Woo product create status key only; safety policy lives in AGENTS.md §5
 - `aspect_ratio` ('3:4'), `output_px` (1600), `output_px_min` (1600), `fill_target` (0.80)
-- `user_sensitivity`, `user_edge_offset`, `user_feather`, `user_sheet_mode`
+
+Sheet/slider prefs (`sheet_mode`, sensitivity, edge offset, feather) are **not** server
+settings keys in POC. Client localStorage is source of truth (AGENTS §4 / ARCHITECTURE §5).
+Optional server sync of those prefs is out of scope for POC.
 
 **Prompt files** — not in the settings table. Stored as text files in
 `/data/prompts/` (server volume). Read fresh on each invocation. Default
 prompts shipped with the app; owner edits directly. A reset-to-default script
 restores originals.
+
+This table is the ciphertext **key inventory** and schema only. The never-browser /
+AES-GCM / `SLAB_AES_KEY` env policy lives in AGENTS.md §4; flow lives in ARCHITECTURE §5.
 
 AES master key is an env var (`SLAB_AES_KEY`, 32 bytes base64). Never in the DB.
 Each `value_enc` = `nonce(12) || ciphertext`.

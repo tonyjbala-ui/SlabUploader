@@ -1,11 +1,9 @@
 # Implementation Plan
 
-Status: SPEC · Gate A freeze 2026-08-31 · hybrid rewrite pass 2026-09-01 · SlabUploader
+Status: SPEC · Gate A freeze 2026-08-31 · hybrid rewrite complete 2026-09-01 · SlabUploader
 
-Phase 0 and the Gate C / Phase 1–2 / Phase 6 sections below are authoritative for hybrid
-topology. Phases 3–5 still need a full hybrid rewrite in a later docs commit; until then
-implement only Phase 0 plus sections marked rewritten here. Do not implement deferred
-stubs (offline PWA, OCR, ruler) or any server happy-path measure/crop as SoT.
+Phases 0–6 below are hybrid-aligned. Phase 2 remains a deferred stub only. Do not
+implement offline PWA, OCR, ruler, or any server happy-path measure/crop as SoT.
 
 The build plan a professional (or a fresh Hermes session) executes against. Each phase
 has: goal, deliverables, acceptance criteria (testable), and exit gate. Ordering is by
@@ -149,50 +147,57 @@ No airplane-mode acceptance. No OCR or ruler exit gate in POC.
 
 ---
 
-## Phase 3 — Frontend: enrich, review, publish UI
+## Phase 3 — Frontend: enrich, review, publish UI (rewritten)
 
-> **Partial hybrid rewrite pending (docs commit 3).** Goal and intent below stay valid.
-> Do not reintroduce offline capture, server measure/crop, or a `processing` status.
-> Prefer AGENTS + ARCHITECTURE + OPENAPI over any leftover offline-era wording.
-
-Goal: the enriched review screen and publish action, wired to Phase 1 API.
+Goal: online review + publish UI on top of Gate C calibrated drafts. Hybrid only.
+Client already owns mask/numbers/PNGs. This phase does not re-measure on the server.
 
 Deliverables:
 
-- Review screen: all fields editable (dimensions, species/character with confidence
-  + manual override, price with recommendation, content with "Generate text" when
-  inference is on, client-processed PNGs).
-- Species/character inference UI (calls server; shows confidence; manual confirm below
-  threshold). Call 1 uses all inventory photos @1024 when inference is enabled.
-- Publish button (online-only), status polling, success/failure states, error detail.
-- Settings UI: Woo creds + test, inference endpoint + test (vision check),
-  pricing rules editor, brand voice/GEO. Prompts are server files, not UI settings.
+- Review screen after calibrated upload: all fields editable (length, thickness, SKU,
+  widths/sqft/bdft shown as client-computed with manual override paths, species and
+  wood categories, five attributes, fig-*/feat-* tags, price with species $/bdft
+  recommendation, title/short/description).
+- Show client-processed transparent PNGs (and originals while retained). No server
+  re-crop UI as SoT.
+- Inference UI (only meaningful after Gate C and when `inference_enabled`): Call 1
+  results with confidence; manual confirm required below threshold **0.7**
+  (configurable). "Generate text" triggers Call 2; never auto.
+- Publish button (online-only), poll `publishing` → `published` | `failed`, surface
+  error detail from sync_log.
+- Settings UI: Woo creds + test, inference endpoint + test (vision check), pricing
+  rules editor, brand voice/GEO, `woo_create_status`. Sheet/slider prefs stay in
+  client localStorage. Prompts are server files, not UI settings.
+- Secrets never appear in GET settings responses (masked `*_configured` only).
 
 Acceptance:
 
-- Full round-trip in browser: capture → upload → review → edit → publish → local
-  `published` (against a Woo sandbox/mock in tests; against real store in Phase 6).
-- Inference disabled → review screen fully functional with manual species/character.
-- Every field is editable and the override persists (asserted in a test).
+- Browser round-trip: online capture → mask/axis confirm → calibrated upload →
+  review → edit → publish → local `published` (Woo mock in tests; real store Phase 6).
+- Inference OFF → full manual taxonomy + content path works; no inference network calls.
+- Field overrides persist across poll/refresh (asserted).
+- No offline/IndexedDB requirement. No OCR/ruler UI.
 
-Exit gate: Ty publishes a test slab to the real store as a **Woo draft** (`SLAB-UAT-*`) product.
+Exit gate: Ty publishes a test slab to the real store as a **Woo draft** (`SLAB-UAT-*`).
 (Gate A lock: not pending/published for UAT.)
 
 ---
 
-## Phase 4 — WooCommerce integration (real)
+## Phase 4 — WooCommerce integration (rewritten)
 
-> **Partial hybrid rewrite pending (docs commit 3).** Payload and safety locks already
-> match AGENTS. Keep `woo_create_status` + `SLAB-UAT-*` force-draft. No server happy-path
-> image pipeline as SoT.
-
-Goal: production Woo sync, taxonomy, dedupe, logging (FR24–28).
+Goal: production Woo sync, taxonomy, dedupe, logging. Browser never calls Woo.
+Media bytes are client-processed **PNGs**. Safety policy from AGENTS §5.
 
 Deliverables:
 
-- Woo client (httpx, Basic auth, timeouts), taxonomy sync, auto-assign, media upload,
-  product create via `woo_create_status` (default **draft**; `SLAB-UAT-*` forces draft),
-  dedupe, sync_log.
+- Woo client (httpx, Basic auth, timeouts), taxonomy sync into cache tables, auto-assign
+  per CONTENT-WOO §2.3 (categories + five attributes + fig-*/feat-* tags only).
+- Media upload of processed PNG inventory photos; product create via `woo_create_status`
+  (default **draft**). If SKU matches `SLAB-UAT-*`, force Woo **draft** even when
+  Settings say publish.
+- Dedupe by SKU before create; `409 duplicate_sku`; no edit-same-SKU path in MVP.
+- `sync_log` with payload_hash; on success set local `published`, purge originals +
+  processed images on server.
 - `POST /api/admin/taxonomy/sync` against the real store.
 - Integration tests against a Woo mock (respx) for success + error + duplicate paths.
 - Partial-failure handling (orphaned media noted, per CONTENT-WOO §2.6).
@@ -200,8 +205,8 @@ Deliverables:
 Acceptance:
 
 - Real UAT publish: product appears in store admin as **draft** under `SLAB-UAT-*`,
-  correct SKU/price/images/category/tags; `woo_product_id` stored; `sync_log` written
-  with payload_hash.
+  correct SKU/price/PNG images/category/tags/attributes; `woo_product_id` stored;
+  `sync_log` written with payload_hash.
 - Duplicate SKU publish → 409, no second product created.
 - Woo error (bad creds / 500) → slab `failed` with detail; retry path works.
 - All Woo integration tests green (mock + one live smoke).
@@ -210,33 +215,30 @@ Exit gate: Ty verifies a real **Woo draft** `SLAB-UAT-*` product in the store is
 
 ---
 
-## Phase 5 — Inference (vision + optional content)
+## Phase 5 — Inference (vision + optional content) (rewritten)
 
-> **Partial hybrid rewrite pending (docs commit 3).** Sequencing lock stands: inference
-> OFF until Gate C is green; Call 1/2 still inside POC after Gate C. Call 1 = all photos
-> @1024 (not top-down-only). Confidence threshold 0.7 (configurable) lives here.
-
-Goal: scoped, toggleable inference with guardrails. Starts only after Gate C is green.
+Goal: scoped, toggleable inference **after Gate C is green**, still inside POC.
+Does not gate publish. Full suite must pass with inference OFF.
 
 Deliverables:
 
-- Vision wrapper: species/character (and related taxonomy) from **all inventory photos**
-  downscaled to 1024 via the configurable OpenAI-compatible endpoint; model constrained
-  to Woo taxonomy cache; returns confidence (threshold **0.7**, configurable); logs
-  request/response.
-- Content wrapper: Call 2 reads `prompts/call2.txt`; LLM writes prose only,
-  dimensions injected by deterministic templates. See `docs/PROMPTS.md`.
-- `test-inference` endpoint (vision capability check).
-- All inference code behind feature flags; suite passes with everything OFF.
+- Call 1 (vision) proxy: **all inventory photos** downscaled to 1024 + Woo taxonomy
+  snapshot + user metadata; OpenAI-compatible endpoint; model constrained to cached
+  taxonomy; confidence threshold **0.7** (configurable; relocate from older PRD FR22a).
+  Auto-run on calibrated create only if `inference_enabled`. Not top-down-only.
+- Call 2 (text) proxy: never auto. User taps Generate text. LLM prose only; templates
+  inject deterministic numbers. See `docs/PROMPTS.md`.
+- `test-inference` endpoint (vision capability check) before Call 2 is allowed.
+- Feature flags; `inference_log` audit rows; prompt files read fresh each call.
+- No numeric/dimension invention by the LLM. LoRA deferred.
 
 Acceptance:
 
-- With a local vision model configured: species/character suggestion appears with
-  confidence; low confidence → manual confirm required.
-- With inference OFF: full app works, tests green (explicit test asserts no network
-  calls to the inference endpoint).
-- Inference payloads stored for audit (asserted present after a call).
-- Call 1 prompt file edits survive server restart (read fresh each invocation).
+- Local vision model configured: taxonomy suggestions appear with confidence; below
+  0.7 → manual confirm required.
+- Inference OFF: app works end-to-end; tests assert zero calls to the inference endpoint.
+- Audit payloads present after a call; prompt file edits apply without server restart.
+- Gate C path remains green with inference OFF.
 
 Exit gate: Ty runs species detection on 3 real slabs; results acceptable or manually
 corrected (that is the design).

@@ -1,9 +1,12 @@
 # Architecture
 
-Status: SPEC · 2026-08-27 · SlabUploader  
-Locked so far: topology C (hybrid), swimlane, what-runs-where. Remaining sections TBD.
+Status: SPEC · hybrid topology locked at Gate A freeze (2026-08-31) · SlabUploader
 
-Companion: PRD (root), TECH-SPEC-PIPELINE.md.
+Normative for hybrid split, swimlane, what-runs-where, secrets **why**, and status
+transitions. Ops depth lives in DEPLOYMENT. Schema enums live in DATA-MODEL.
+Agent-facing hard rules live in AGENTS.md (verbatim locks stay there).
+
+Companion: TECH-SPEC-PIPELINE.md. PRD is historical intent only (see AGENTS precedence).
 
 ## 1. Topology (hybrid)
 

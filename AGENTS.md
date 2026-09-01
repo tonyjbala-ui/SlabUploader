@@ -14,7 +14,7 @@ When docs disagree, use this order until stale docs are rewritten:
 2. **`docs/ARCHITECTURE.md`** — hybrid topology, what-runs-where, secrets, status machine
 3. This **`AGENTS.md`** — hard rules for agents
 4. **`docs/DATA-MODEL.md`**, **`docs/OPENAPI.md`**, **`docs/CONTENT-WOO.md`**, **`docs/PROMPTS.md`**, **`docs/DEPLOYMENT.md`**
-5. **`docs/IMPL-PLAN.md`** — Phase 0 and rewritten Gate C / Phase 1–2 / Phase 6 sections are authoritative. Implement only Phase 0 plus sections marked rewritten. Do not implement deferred stubs (offline PWA, OCR, ruler) or any leftover server happy-path pipeline language.
+5. **`docs/IMPL-PLAN.md`** — Hybrid-aligned Phases 0–6 are authoritative. Phase 2 is a deferred stub only (offline PWA / OCR / ruler). Do not implement deferred stubs or any server happy-path measure/crop as SoT.
 6. **PRD / README** — product intent only; do **not** implement lines that contradict TECH-SPEC, ARCHITECTURE, or this file
 
 Known stale / do-not-implement without rewrite:
