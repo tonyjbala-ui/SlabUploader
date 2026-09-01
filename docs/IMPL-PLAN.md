@@ -1,13 +1,19 @@
 # Implementation Plan
 
-Status: SPEC · Gate A freeze 2026-08-31 · SlabUploader
-Phase 0 rewritten for hybrid topology (client-authoritative TECH-SPEC). Phases 1+ still contain stale offline/OCR/ruler/pending language — do not implement those lines; follow AGENTS.md.
-The build plan a professional (or a fresh Hermes session) executes against. Each
-phase has: goal, deliverables, acceptance criteria (testable), and exit gate.
-Ordering is by dependency — do not skip ahead. Definition of done for EVERY phase:
-code + tests + real execution output in the PR/commit message + docs updated.
+Status: SPEC · Gate A freeze 2026-08-31 · hybrid rewrite pass 2026-09-01 · SlabUploader
+
+Phase 0 and the Gate C / Phase 1–2 / Phase 6 sections below are authoritative for hybrid
+topology. Phases 3–5 still need a full hybrid rewrite in a later docs commit; until then
+implement only Phase 0 plus sections marked rewritten here. Do not implement deferred
+stubs (offline PWA, OCR, ruler) or any server happy-path measure/crop as SoT.
+
+The build plan a professional (or a fresh Hermes session) executes against. Each phase
+has: goal, deliverables, acceptance criteria (testable), and exit gate. Ordering is by
+dependency. Do not skip ahead. Definition of done for every phase: code + tests + real
+execution output in the PR/commit message + docs updated.
 
 Ground rules (from AGENTS.md):
+
 - Deterministic core is unit-tested before any UI consumes it.
 - No feature without a passing test and shown output.
 - Inference stays toggleable; the full suite must pass with it disabled.
@@ -15,7 +21,7 @@ Ground rules (from AGENTS.md):
 
 ---
 
-## Phase 0 — Hybrid skeleton & client deterministic core (= Gates A+B)
+## Phase 0 — Hybrid skeleton and client deterministic core (= Gates A+B)
 
 Goal: scaffold the hybrid app and ship a **tested client-authoritative** TECH-SPEC
 pipeline (mask → axis → sqft/bdft → 3:4 PNG) plus a minimal FastAPI store/settings
@@ -25,6 +31,7 @@ shell. No Woo publish, no inference, no offline/OCR/ruler.
 2026-08-31). **Gate B (infra/code):** items below.
 
 Scope — in:
+
 - Repo layout: `frontend/` (SvelteKit), `backend/` (FastAPI), `deploy/` stubs; docs stay SoT.
 - Client pure modules implementing TECH-SPEC: constants, sheet/chroma/black + sliders,
   mask confirm hooks, length axis, scale, 6" widths, sqft, **bdft = sqft × thickness_in**,
@@ -33,10 +40,12 @@ Scope — in:
   settings stub with AES-GCM round-trip (secrets never returned on GET), draft store stub
   (accept client numbers + files — store only, do not recompute SoT).
 - `deploy/docker-compose.yml`, `Caddyfile.fragment`, `.env.example` (placeholders only).
-- Unit tests for TECH-SPEC **TV-1…TV-9** (esp. TV-3 bdft, TV-6/7 crop/no-upscale, TV-8 pricing).
+- Unit tests for TECH-SPEC **TV-1 through TV-10** (esp. TV-3 bdft, TV-6/7 crop/no-upscale,
+  TV-8 pricing, TV-10 rounding).
 - Fixture photo set for Ty Gate B review.
 
 Scope — out:
+
 - Server happy-path pipeline / CLI that recomputes mask/crop/bdft as SoT.
 - Real U2Net (stub OK; on-demand later).
 - Woo create/publish, live taxonomy sync (mock/seed species list OK later).
@@ -45,15 +54,17 @@ Scope — out:
 - Fake upscale / inventing pixels.
 
 Deliverables:
-- `frontend/` scaffold + deterministic modules + unit tests TV-1…TV-9.
+
+- `frontend/` scaffold + deterministic modules + unit tests TV-1…TV-10.
 - `backend/` FastAPI health + settings encryption + draft persistence stub + schema migration baseline.
 - `deploy/` compose + `.env.example` + Caddy fragment.
-- Shown output in PR/commit: printed TV-3, TV-6, and TV-7 (no-upscale/retake) on **real fixtures**.
+- Shown output in PR/commit: printed TV-3, TV-6, TV-7 (no-upscale/retake), and TV-10 on **real fixtures**.
 
 Acceptance:
+
 - Gate B: client (or shared pure) tests green for TECH-SPEC vectors; bdft identity holds
-  (no `/12`); undersized source warns and refuses fake upscale.
-- `GET /api/health` up in compose over HTTPS hostname after `.201` inventory + Caddy merge.
+  (no `/12`); undersized source warns and refuses fake upscale; rounding matches TV-10.
+- `GET /api/health` up in compose over HTTPS hostname after host inventory + Caddy merge.
 - Settings AES round-trip; secret fields never appear in GET.
 - Draft can store client-uploaded originals + PNGs + numbers without server recompute.
 - Coverage target: deterministic modules ≥ 95% where practical; property checks
@@ -62,105 +73,164 @@ Acceptance:
 Exit gate: Ty confirms Gate B math/image prep shown output on real fixtures; health +
 encrypted settings + draft store stub demonstrated (curl or thin UI).
 
-**Next (not Phase 0):** Gate C = early Phase 1 claimable publish — Woo **draft** +
-`SLAB-UAT-*` on prod, inference OFF. Call 1/2 after Gate C, still inside POC.
+**Next:** Gate C = early Phase 1 claimable publish — online hybrid capture + Woo **draft**
++ `SLAB-UAT-*` on the configured store, inference OFF. Call 1/2 after Gate C, still inside POC.
 
-## Phase 1 — API surface (no Woo, no inference)
-Goal: full slab CRUD + photo upload + settings, backed by the Phase-0 core.
+---
+
+## Phase 1 — Gate C claimable path, then full API surface (rewritten)
+
+### Early Phase 1 / Gate C slice (claimable first draft listing)
+
+Goal: one Woo **draft** listing Ty can open in store admin, with inference **OFF**.
+Online hybrid capture only. No OCR, ruler, or offline.
 
 Deliverables:
-- Routers per OPENAPI: slabs (CRUD + upload + poll), photos (serve), pricing-rules,
-  settings (with AES-GCM encryption + test stubs), taxonomy (cache read/write).
-- Optimistic concurrency (client_rev/server_rev, 409 paths).
-- Status state machine + in-process job queue (processing→ready).
-- Integration tests (httpx TestClient): create→upload→poll→ready; revision conflict;
-  duplicate SKU; settings encryption round-trip (secret never returned).
+
+- Online capture of 1–5 inventory photos (no airplane-mode requirement).
+- Client sheet/sliders, mask overlay + user confirm, length axis overlay + confirm.
+- Client sqft / bdft / 6" widths; 3:4 transparent PNG prep per TECH-SPEC.
+- Manual SKU, length, thickness; manual taxonomy as needed for one listing.
+- Calibrated draft upload: originals + processed PNGs + client-sent numbers. Server
+  stores only (OPENAPI POST returns `status: calibrated`).
+- Woo **draft** create with SKU prefix `SLAB-UAT-*` on the configured PROD store.
+  Honor AGENTS Woo safety: `SLAB-UAT-*` forces draft even if Settings say publish.
+- Inference remains OFF for this slice. Full suite still green with inference disabled.
 
 Acceptance:
+
+- Ty captures a real slab on phone (online), confirms mask + axis, sees client numbers.
+- One `SLAB-UAT-*` product appears in Woo admin as **draft** with correct SKU/price/images
+  enough for Ty to open and inspect.
+- No Call 1/Call 2 required. No offline, OCR, or ruler path exercised.
+- Duplicate SKU → stop with error; no second product.
+
+Exit gate: Ty opens one draft listing in Woo admin. Gate C is green.
+
+### Phase 1 remainder (API / settings / taxonomy cache)
+
+Goal: full slab CRUD + photo upload + settings + taxonomy cache read, still hybrid.
+No server happy-path math. No `processing` slab status.
+
+Deliverables:
+
+- Routers per OPENAPI: slabs (CRUD + upload + poll), photos (serve), pricing-rules,
+  settings (AES-GCM + test stubs), taxonomy (cache read/write).
+- Optimistic concurrency (`client_rev` / `server_rev`, 409 paths).
+- Status machine only: `draft → calibrated → ready → publishing → published | failed`.
+  Job queue only for publish, inference (later), and U2Net-on-demand. Never for measure/crop.
+- Integration tests (httpx TestClient): create calibrated → poll → ready (manual fields);
+  revision conflict; duplicate SKU; settings encryption round-trip (secret never returned).
+
+Acceptance:
+
 - OPENAPI.md endpoints implemented; a generated `openapi.yaml` matches the doc.
 - Integration tests green; secrets never leak into any GET response (asserted).
 - `docker compose up` (backend + a throwaway frontend stub) serves the API.
+- PUT stores client-sent derived fields; does not recompute sqft/bdft/widths as SoT.
 
-Exit gate: Ty drives the API with curl through a full draft→ready cycle.
+Exit gate: Ty drives the API with curl through a full calibrated → ready cycle (manual).
 
-## Phase 2 — Frontend: capture & offline PWA
-> **SUPERSEDED for POC (Gate A 2026-08-31):** online-only; no OCR/ruler/offline PWA. Do not implement this section as written. Capture UX moves to early Phase 1 / Gate C shape per AGENTS.md.
+---
 
-Goal: mobile-first capture flow, fully offline, with the local light pass.
+## Phase 2 — Deferred: offline PWA / OCR / ruler (stub only)
 
-Deliverables:
-- SvelteKit + Tailwind app (SPA/SSG), Workbox service worker, IndexedDB stores.
-- Capture flow: SKU close-up (Tesseract.js OCR + manual fallback), ruler shot
-  (OpenCV.js hint + manual length fallback), 1–5 inventory photos, thickness entry.
-- Draft autosave to IndexedDB (rev management), offline banner, upload queue.
-- Photo review UI (reorder/delete/retake; mark top-down photo).
+**Deferred post-POC.** Do not implement for the online-only MVP.
 
-Acceptance:
-- On a real phone (LAN/Tailscale), the entire capture flow works with airplane mode
-  on (photos + OCR + draft persist offline).
-- On reconnect, queued draft uploads and the enriched draft merges.
-- Lighthouse mobile ≥ 90 on the capture screens; one-hand usable (manual check).
-- SW precache verified (reload with network off after first load).
+Capture UX for POC lives in early Phase 1 / Gate C (online hybrid). See AGENTS.md §2.
 
-Exit gate: Ty captures a real slab fully offline on his phone; draft survives a
-browser restart.
+Out of scope until a later product decision reopens offline:
+
+- Workbox service worker, IndexedDB draft sync, airplane-mode capture
+- Tesseract.js OCR for SKU
+- OpenCV.js ruler / scale detection
+
+No airplane-mode acceptance. No OCR or ruler exit gate in POC.
+
+---
 
 ## Phase 3 — Frontend: enrich, review, publish UI
-Goal: the enriched review screen and publish action, wired to Phase-1 API.
+
+> **Partial hybrid rewrite pending (docs commit 3).** Goal and intent below stay valid.
+> Do not reintroduce offline capture, server measure/crop, or a `processing` status.
+> Prefer AGENTS + ARCHITECTURE + OPENAPI over any leftover offline-era wording.
+
+Goal: the enriched review screen and publish action, wired to Phase 1 API.
 
 Deliverables:
+
 - Review screen: all fields editable (dimensions, species/character with confidence
-  + manual override, price with recommendation, content with "Refine with AI" toggle,
-  normalized photos).
+  + manual override, price with recommendation, content with "Generate text" when
+  inference is on, client-processed PNGs).
 - Species/character inference UI (calls server; shows confidence; manual confirm below
-  threshold).
+  threshold). Call 1 uses all inventory photos @1024 when inference is enabled.
 - Publish button (online-only), status polling, success/failure states, error detail.
-- Settings UI (FR32): Woo creds + test, inference endpoint + test (vision check),
+- Settings UI: Woo creds + test, inference endpoint + test (vision check),
   pricing rules editor, brand voice/GEO. Prompts are server files, not UI settings.
 
 Acceptance:
-- Full round-trip in browser: capture→upload→review→edit→publish→published (against
-  a Woo sandbox/mock in tests; against real store in Phase 6).
+
+- Full round-trip in browser: capture → upload → review → edit → publish → local
+  `published` (against a Woo sandbox/mock in tests; against real store in Phase 6).
 - Inference disabled → review screen fully functional with manual species/character.
 - Every field is editable and the override persists (asserted in a test).
 
 Exit gate: Ty publishes a test slab to the real store as a **Woo draft** (`SLAB-UAT-*`) product.
 (Gate A lock: not pending/published for UAT.)
 
+---
+
 ## Phase 4 — WooCommerce integration (real)
+
+> **Partial hybrid rewrite pending (docs commit 3).** Payload and safety locks already
+> match AGENTS. Keep `woo_create_status` + `SLAB-UAT-*` force-draft. No server happy-path
+> image pipeline as SoT.
+
 Goal: production Woo sync, taxonomy, dedupe, logging (FR24–28).
 
 Deliverables:
+
 - Woo client (httpx, Basic auth, timeouts), taxonomy sync, auto-assign, media upload,
-  product create via `woo_create_status` (default **draft**; `SLAB-UAT-*` forces draft), dedupe, sync_log.
+  product create via `woo_create_status` (default **draft**; `SLAB-UAT-*` forces draft),
+  dedupe, sync_log.
 - `POST /api/admin/taxonomy/sync` against the real store.
 - Integration tests against a Woo mock (respx) for success + error + duplicate paths.
 - Partial-failure handling (orphaned media noted, per CONTENT-WOO §2.6).
 
 Acceptance:
-- Real UAT publish: product appears in store admin as **draft** under `SLAB-UAT-*`, correct SKU/price/images/
-  category/tags; `woo_product_id` stored; `sync_log` written with payload_hash.
+
+- Real UAT publish: product appears in store admin as **draft** under `SLAB-UAT-*`,
+  correct SKU/price/images/category/tags; `woo_product_id` stored; `sync_log` written
+  with payload_hash.
 - Duplicate SKU publish → 409, no second product created.
 - Woo error (bad creds / 500) → slab `failed` with detail; retry path works.
 - All Woo integration tests green (mock + one live smoke).
 
 Exit gate: Ty verifies a real **Woo draft** `SLAB-UAT-*` product in the store is correct.
 
+---
+
 ## Phase 5 — Inference (vision + optional content)
-Goal: scoped, toggleable inference with guardrails.
+
+> **Partial hybrid rewrite pending (docs commit 3).** Sequencing lock stands: inference
+> OFF until Gate C is green; Call 1/2 still inside POC after Gate C. Call 1 = all photos
+> @1024 (not top-down-only). Confidence threshold 0.7 (configurable) lives here.
+
+Goal: scoped, toggleable inference with guardrails. Starts only after Gate C is green.
 
 Deliverables:
-- Vision wrapper: species/character detection from the top-down photo via the
-  configurable OpenAI-compatible endpoint; model constrained to Woo species list
-  for accuracy; returns confidence (threshold 0.7, configurable); logs
+
+- Vision wrapper: species/character (and related taxonomy) from **all inventory photos**
+  downscaled to 1024 via the configurable OpenAI-compatible endpoint; model constrained
+  to Woo taxonomy cache; returns confidence (threshold **0.7**, configurable); logs
   request/response.
-- Content wrapper: Call 2 reads prompts/call2.txt; LLM writes prose only,
-  dimensions injected by deterministic templates. No numeric guardrail needed.
-  See docs/PROMPTS.md.
+- Content wrapper: Call 2 reads `prompts/call2.txt`; LLM writes prose only,
+  dimensions injected by deterministic templates. See `docs/PROMPTS.md`.
 - `test-inference` endpoint (vision capability check).
 - All inference code behind feature flags; suite passes with everything OFF.
 
 Acceptance:
+
 - With a local vision model configured: species/character suggestion appears with
   confidence; low confidence → manual confirm required.
 - With inference OFF: full app works, tests green (explicit test asserts no network
@@ -169,46 +239,58 @@ Acceptance:
 - Call 1 prompt file edits survive server restart (read fresh each invocation).
 
 Exit gate: Ty runs species detection on 3 real slabs; results acceptable or manually
-corrected (that's the design).
+corrected (that is the design).
 
-## Phase 6 — Deployment, UAT, hardening
-Goal: production on .201 + user acceptance tests (PRD deliverable: UATs after prototype).
+---
+
+## Phase 6 — Deployment, UAT, hardening (rewritten, online only)
+
+Goal: production deploy on the **inventoried** host + online user acceptance tests.
 
 Deliverables:
-- .201 inventory pass (DEPLOYMENT §1) → final compose + Caddyfile.
-- Deploy to `slab.tyubumini.local`; backup/restore runbook executed once (restore tested).
-- **UAT suite** built from PRD acceptance criteria: a scripted set of real slabs
-  (≥3 species, ≥1 cathedral, ≥1 manual-width fallback, ≥1 offline capture, ≥1
-  duplicate-SKU attempt) with expected bdft/price/image-fill asserted.
-- Performance check: capture OCR 1–2s, server normalization 3–5s per slab (PRD NFR).
+
+- Host inventory pass (DEPLOYMENT §1 / `deploy/INVENTORY.md`) → final compose + Caddyfile.
+- Deploy to `https://${APP_HOSTNAME}`; backup/restore runbook executed once (restore tested).
+- **UAT suite** for the hybrid online path: scripted real slabs (≥3 species, ≥1 cathedral,
+  ≥1 manual-width path, ≥1 duplicate-SKU attempt) with expected bdft/price/image-fill
+  asserted. **No** offline capture, OCR, or ruler cases in POC UAT.
+- Performance: client measure/crop budgets on device; optional U2Net-on-demand latency.
+  No server happy-path “normalization 3–5s” budget. No OCR 1–2s budget.
 - Docs: README, runbook, key-rotation verified.
 
-Acceptance (PRD success metrics, measured):
-- E2E capture→publish on iPhone AND Android browsers works.
+Acceptance (measured):
+
+- E2E capture→publish on iPhone and Android browsers works (online).
 - Manual length override recalculates widths/sqft/bdft correctly (UAT asserts).
-- Normalization: slab ~80% frame in ≥95% of UAT photos.
-- Woo product created with normalized images + correct taxonomy.
-- Deterministic functions unit-tested; inference calls logged for audit.
+- Client crop: slab ~80% frame in ≥95% of UAT photos; shorter side ≥1600 when source allows.
+- Woo product created with processed PNG images + correct taxonomy.
+- Deterministic functions unit-tested; inference calls logged for audit when used.
 - Backup restore demonstrated once.
 
 Exit gate: Ty signs off on UAT results; v1 declared done.
 
 ---
 
-## Risks & mitigations
+## Risks and mitigations
+
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Ruler detection unreliable in field lighting | bad scale → bad widths | manual length is authoritative fallback (always available); ruler confidence surfaced; UAT gates it |
-| Green-sheet color varies / U²Net CPU latency > budget | slow/failed normalization | chroma-key primary (fast); U²Net fallback; `output_px` can drop to 1000 min; GPU path documented |
+| Green-sheet color varies / U2Net CPU latency high | slow or failed “Try harder” | chroma-key / black threshold primary on client; U2Net on demand only; never drop `output_px_min` below 1600 (undersized → retake) |
 | No vision model available at deploy | species inference off | inference is toggleable; manual species/character fully functional — v1 not blocked |
 | Woo partial publish (media up, product POST fails) | orphaned images, confusing state | sync_log + retained images for retry; manual cleanup note; no auto-delete |
-| Local llama.cpp vision endpoint not up on .202 | inference off | configurable endpoint; deploy-time config; app works without it |
+| Local vision endpoint not up | inference off | configurable endpoint; deploy-time config; app works without it |
 | SQLite contention under concurrent polls | slowdown | single owner, low volume; Postgres path documented |
-| .201 port/Caddy collision with bolt.diy | deploy conflict | Phase-0/6 inventory pass before any port bind |
+| Host port/Caddy collision with co-resident apps (e.g. bolt.diy) | deploy conflict | Phase 0/6 inventory worksheet before any port bind |
+
+Ruler detection is **deferred** with offline/OCR (Phase 2 stub). Manual length is
+authoritative for POC. Do not treat ruler confidence as a POC risk row.
+
+---
 
 ## Definition of Done (v1, project-level)
-- All 6 phases exit-gated by Ty.
-- PRD acceptance criteria met (measured in Phase 6 UAT).
+
+- All 6 phases exit-gated by Ty (Phase 2 remains deferred stub unless product reopens it).
+- Hybrid online acceptance met (measured in Phase 6 UAT).
 - `pytest` + integration + UAT green; inference-off path green.
-- Deployed on .201, HTTPS, backed up, restore tested, runbook + key-rotation verified.
+- Deployed on inventoried host, HTTPS, backed up, restore tested, runbook + key-rotation verified.
 - Repo on gitea-atd (`Ty_Tech/SlabUploader`) is source of truth; docs current.

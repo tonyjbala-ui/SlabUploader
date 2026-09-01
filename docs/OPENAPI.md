@@ -144,14 +144,14 @@ Secrets (keys) are never returned. Only a `*_configured` boolean.
 
 ### Slabs
 - `POST /api/v1/slabs` — Create a calibrated draft. Body: multipart with `data` (SlabCreate JSON) + `files[]` (photos) + `meta[]` (photo metadata).
-  - Returns `201` `Slab` (status `draft`).
+  - Returns `201` `Slab` with `status: "calibrated"` (mask + axis confirmed; client-sent sqft/bdft/widths stored).
   - Server auto-runs Call 1 **only if** `inference_enabled` is true. `inference_status` becomes `inferring`, then `done`/`failed`.
   - `409 duplicate_sku` if SKU already published.
 - `GET /api/v1/slabs` → `200` `[Slab]` (most recent first).
 - `GET /api/v1/slabs/{id}` → `200` `Slab` / `404`.
   - Also used as the poll endpoint for inference and publish. Long-running ops set status to `inferring`/`publishing`; client backs off (1s, 2s, 4s, cap 10s).
 - `PUT /api/v1/slabs/{id}` — Update draft fields. Body: partial `SlabCreate` (any subset of editable fields + `client_rev`).
-  - Server re-runs derived math when inputs change.
+  - Server **stores** client-sent derived fields (`sqft`, `bdft`, widths). It may validate shape and ranges. It must **not** recompute mask, sqft, bdft, or widths as source of truth. Client re-runs TECH-SPEC math and PUTs the new numbers.
   - `409 revision_conflict`, `409 duplicate_sku`.
 - `DELETE /api/v1/slabs/{id}` → `204`. Soft: only unpublished drafts. Published slabs cannot be deleted from the app.
 
@@ -247,14 +247,14 @@ Content-Type: application/json
 ```
 Response: `201`
 ```json
-{ "id":"9f1c...","sku":"BW-0042","status":"draft",
+{ "id":"9f1c...","sku":"BW-0042","status":"calibrated",
   "inference_status":"inferring","server_rev":1,"photos":[...],... }
 ```
 
 ### Call 1 completes (poll)
 ```
 GET /api/v1/slabs/9f1c...
-→ 200 { "status":"draft","inference_status":"done",
+→ 200 { "status":"calibrated","inference_status":"done",
          "species_id":42,"species_confidence":0.92,
          "wood_category_ids":[15],"edge_type_term_id":8,
          "figure_term_ids":[3],"grade_term_ids":[7],
@@ -298,7 +298,7 @@ POST /api/v1/settings/test-inference
 ---
 
 ## Versioning
-URL is `/api/v1`. Breaking changes bump to `/api/v2`. The PWA pins the version it was built against.
+URL is `/api/v1`. Breaking changes bump to `/api/v2`. The SvelteKit client pins the version it was built against.
 
 ## Out of contract (v1)
 - Bulk endpoints, staff/role endpoints, webhook push, analytics.

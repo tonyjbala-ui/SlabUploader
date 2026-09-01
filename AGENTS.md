@@ -14,16 +14,18 @@ When docs disagree, use this order until stale docs are rewritten:
 2. **`docs/ARCHITECTURE.md`** — hybrid topology, what-runs-where, secrets, status machine
 3. This **`AGENTS.md`** — hard rules for agents
 4. **`docs/DATA-MODEL.md`**, **`docs/OPENAPI.md`**, **`docs/CONTENT-WOO.md`**, **`docs/PROMPTS.md`**, **`docs/DEPLOYMENT.md`**
-5. **`docs/IMPL-PLAN.md`** — Phase 0 hybrid rewrite is authoritative; Phases 1+ TBD rewrite — **do not implement old Phase 0–2** (server happy-path pipeline, offline PWA, OCR, ruler)
-6. **PRD / README** — product intent only; do **not** implement lines that contradict TECH-SPEC or ARCHITECTURE
+5. **`docs/IMPL-PLAN.md`** — Phase 0 and rewritten Gate C / Phase 1–2 / Phase 6 sections are authoritative. Implement only Phase 0 plus sections marked rewritten. Do not implement deferred stubs (offline PWA, OCR, ruler) or any leftover server happy-path pipeline language.
+6. **PRD / README** — product intent only; do **not** implement lines that contradict TECH-SPEC, ARCHITECTURE, or this file
 
 Known stale / do-not-implement without rewrite:
 
-- PRD FR4 `bdft = sqft × thickness / 12` → **wrong**. TECH-SPEC: `bdft = sqft × thickness_in` (no `/12`).
-- PRD decision 15 “creds client-side” → **wrong**. Server AES-GCM only; never browser storage for secrets.
-- PRD / README “server does normalization / offline-first PWA / OCR / ruler” → superseded by hybrid + online-only MVP.
-- IMPL-PLAN Phase 0–2 text that describes server `pipeline/` CLI, ruler, offline PWA, Tesseract, OpenCV.js ruler → obsolete (Phase 0 rewritten 2026-08-31).
-- CONTENT-WOO / DEPLOYMENT smoke “pending” as default create → superseded: UAT uses **Woo draft** + `SLAB-UAT-*`.
+- PRD FR17 “Tags: fig-* only” → **wrong**. Locked model is `fig-*` (1+) + `feat-*` (0+). See DATA-MODEL.
+- PRD FR19 / overview “species and wood category” pricing → **wrong**. Species `$/bdft` only. Category-weighted pricing is deferred (v1.5).
+- PRD FR40 “server-side processing” and NFR “server normalization” → **wrong**. Client owns happy-path measure/crop; server stores drafts and runs U2Net on demand only.
+- PRD FR42 / deploy bullets hard-coding `.201` → superseded by env-agnostic DEPLOYMENT (inventory + `APP_HOSTNAME`).
+- Older “creds client-side” decision → **wrong**. Server AES-GCM only; never browser storage for secrets (PRD D15 already corrected; keep this lock).
+- PRD / README offline-first PWA / OCR / ruler → superseded by hybrid + online-only MVP.
+- CONTENT-WOO / DEPLOYMENT older “pending” create default → superseded: UAT uses **Woo draft** + `SLAB-UAT-*`.
 
 ---
 
@@ -77,7 +79,7 @@ Encode TECH-SPEC exactly:
 - Image prep: sheet/sliders → mask confirm → length axis confirm → 3:4 PNG / 80% fill / ≥1600px when source allows.
 - **No inventing pixels. No fake upscale.** Undersized source → warn + retake; photo not publishable until retake.
 - Pricing: species `$/bdft` from Settings, seeded by Woo species sync; `rec = bdft × price_per_bdft`; user override sticks; missing rule → empty rec, manual allowed.
-- Port TECH-SPEC **TV-1…TV-9** (TV-10 only after TECH-SPEC defines it). Client (or shared pure modules the client uses) is authoritative for math; server **stores** client-sent numbers — does not recompute as SoT.
+- Port TECH-SPEC **TV-1 through TV-10** (including TV-10 Rounding). Client (or shared pure modules the client uses) is authoritative for math; server **stores** client-sent numbers — does not recompute as SoT. Depth: `docs/TECH-SPEC-PIPELINE.md`.
 
 ---
 
