@@ -3,7 +3,7 @@
 Mobile-first, self-hosted app for publishing one-of-a-one wood slabs to WooCommerce.
 Phone capture (online) → hybrid measure/crop on device → review → WooCommerce create.
 
-Owner: Ty (Whidbey). Store: www.whidbeywoodstore.com. Deploy: .201 (Caddy, Docker).
+Owner: Ty (Whidbey). Store: www.whidbeywoodstore.com. Deploy: Docker Compose + Caddy on an inventoried host (`APP_HOSTNAME`).
 
 ## Status
 **POC requirements freeze in progress (Gate A, 2026-08-31).** Read `AGENTS.md` before

@@ -144,7 +144,8 @@ Encode TECH-SPEC exactly:
 
 ## 9. Deploy sketch (see DEPLOYMENT.md)
 
-- Target: `.201`, Docker Compose (`frontend` + `fastapi`) + Caddy → `slab.tyubumini.local` (LAN/Tailscale).
-- Inventory host ports/Caddy before binding (bolt.diy collision risk).
-- Health: `GET /api/health`.
-- Inference is a remote configurable endpoint, not on `.201` by default.
+- Target: inventoried Docker host. Docker Compose (`frontend` + `fastapi`) + Caddy → `https://${APP_HOSTNAME}` (LAN/Tailscale).
+- Fill `deploy/INVENTORY.md` before binding ports or merging Caddy (co-resident apps can collide; bolt.diy is one example).
+- Health: `GET https://${APP_HOSTNAME}/api/health`.
+- Inference is a remote configurable endpoint, not on the app host by default.
+- Historical lab IP/hostname examples in older notes are non-normative.

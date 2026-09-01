@@ -64,7 +64,7 @@ Acceptance:
 
 - Gate B: client (or shared pure) tests green for TECH-SPEC vectors; bdft identity holds
   (no `/12`); undersized source warns and refuses fake upscale; rounding matches TV-10.
-- `GET /api/health` up in compose over HTTPS hostname after host inventory + Caddy merge.
+- `GET https://${APP_HOSTNAME}/api/health` up in compose after `deploy/INVENTORY.md` is filled and Caddy is merged.
 - Settings AES round-trip; secret fields never appear in GET.
 - Draft can store client-uploaded originals + PNGs + numbers without server recompute.
 - Coverage target: deterministic modules ≥ 95% where practical; property checks
@@ -249,8 +249,8 @@ Goal: production deploy on the **inventoried** host + online user acceptance tes
 
 Deliverables:
 
-- Host inventory pass (DEPLOYMENT §1 / `deploy/INVENTORY.md`) → final compose + Caddyfile.
-- Deploy to `https://${APP_HOSTNAME}`; backup/restore runbook executed once (restore tested).
+- Host inventory pass: complete `deploy/INVENTORY.md` per DEPLOYMENT §1 → final compose + Caddyfile.
+- Deploy to `https://${APP_HOSTNAME}` from inventory; backup/restore runbook executed once (restore tested).
 - **UAT suite** for the hybrid online path: scripted real slabs (≥3 species, ≥1 cathedral,
   ≥1 manual-width path, ≥1 duplicate-SKU attempt) with expected bdft/price/image-fill
   asserted. **No** offline capture, OCR, or ruler cases in POC UAT.
@@ -292,5 +292,5 @@ authoritative for POC. Do not treat ruler confidence as a POC risk row.
 - All 6 phases exit-gated by Ty (Phase 2 remains deferred stub unless product reopens it).
 - Hybrid online acceptance met (measured in Phase 6 UAT).
 - `pytest` + integration + UAT green; inference-off path green.
-- Deployed on inventoried host, HTTPS, backed up, restore tested, runbook + key-rotation verified.
+- Deployed on the inventoried host (`APP_HOSTNAME` from `deploy/INVENTORY.md`), HTTPS, backed up, restore tested, runbook + key-rotation verified.
 - Repo on gitea-atd (`Ty_Tech/SlabUploader`) is source of truth; docs current.
