@@ -54,7 +54,7 @@ All template math fields come from the deterministic pipeline (never from the LL
 
 ### 1.3 Audit
 Every content generation (template or LLM) is logged with inputs (template version,
-slab facts), the LLM request/response payload when used (PRD "inference calls logged"),
+slab facts), the LLM request/response payload when used (inference calls logged for audit),
 and the final stored content.
 
 ## 2. WooCommerce integration (FR24–28)

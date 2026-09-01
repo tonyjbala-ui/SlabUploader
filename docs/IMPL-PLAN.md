@@ -292,7 +292,8 @@ authoritative for POC. Do not treat ruler confidence as a POC risk row.
 ## Definition of Done (v1, project-level)
 
 - All 6 phases exit-gated by Ty (Phase 2 remains deferred stub unless product reopens it).
-- Hybrid online acceptance met (measured in Phase 6 UAT).
+- Hybrid online acceptance met (measured in Phase 6 UAT). Gates A/B/C meanings match AGENTS §0b.
 - `pytest` + integration + UAT green; inference-off path green.
 - Deployed on the inventoried host (`APP_HOSTNAME` from `deploy/INVENTORY.md`), HTTPS, backed up, restore tested, runbook + key-rotation verified.
 - Repo on gitea-atd (`Ty_Tech/SlabUploader`) is source of truth; docs current.
+- Do not treat `docs/archive/PRD-2026-08.txt` as implementation SoT.

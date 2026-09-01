@@ -2,30 +2,60 @@
 
 Working contract for coding agents. Read before writing code.
 
-Status: **Gate A freeze** · signed 2026-08-31 PT · SoT: Gitea `Ty_Tech/SlabUploader` on **gitea-atd** (not mirrors).
+Status: **Gate A freeze** · signed 2026-08-31 PT · docs refactor 2026-09-01 · SoT: Gitea `Ty_Tech/SlabUploader` on **gitea-atd** (not mirrors).
 
 ---
 
 ## 0. Doc precedence (hard)
 
-When docs disagree, use this order until stale docs are rewritten:
+When docs disagree, use this order:
 
 1. **`docs/TECH-SPEC-PIPELINE.md`** — deterministic math, image prep, constants, test vectors
-2. **`docs/ARCHITECTURE.md`** — hybrid topology, what-runs-where, secrets, status machine
-3. This **`AGENTS.md`** — hard rules for agents
+2. **`docs/ARCHITECTURE.md`** — hybrid topology, what-runs-where, secrets why, status machine
+3. This **`AGENTS.md`** — hard rules for agents (verbatim locks below)
 4. **`docs/DATA-MODEL.md`**, **`docs/OPENAPI.md`**, **`docs/CONTENT-WOO.md`**, **`docs/PROMPTS.md`**, **`docs/DEPLOYMENT.md`**
-5. **`docs/IMPL-PLAN.md`** — Hybrid-aligned Phases 0–6 are authoritative. Phase 2 is a deferred stub only (offline PWA / OCR / ruler). Do not implement deferred stubs or any server happy-path measure/crop as SoT.
-6. **PRD / README** — product intent only; do **not** implement lines that contradict TECH-SPEC, ARCHITECTURE, or this file
+5. **`docs/IMPL-PLAN.md`** — hybrid-aligned Phases 0–6. Phase 2 is a deferred stub only (offline PWA / OCR / ruler). Do not implement deferred stubs or any server happy-path measure/crop as SoT.
+6. **`README.md`** — orientation only
+7. **`docs/archive/PRD-2026-08.txt`** — frozen archive only. Not a source for new work.
 
-Known stale / do-not-implement without rewrite:
+Archived PRD lines that conflict with the files above are non-authoritative (see archive header and known-stale list).
 
-- PRD FR17 “Tags: fig-* only” → **wrong**. Locked model is `fig-*` (1+) + `feat-*` (0+). See DATA-MODEL.
-- PRD FR19 / overview “species and wood category” pricing → **wrong**. Species `$/bdft` only. Category-weighted pricing is deferred (v1.5).
-- PRD FR40 “server-side processing” and NFR “server normalization” → **wrong**. Client owns happy-path measure/crop; server stores drafts and runs U2Net on demand only.
-- PRD FR42 / deploy bullets hard-coding `.201` → superseded by env-agnostic DEPLOYMENT (inventory + `APP_HOSTNAME`).
-- Older “creds client-side” decision → **wrong**. Server AES-GCM only; never browser storage for secrets (PRD D15 already corrected; keep this lock).
-- PRD / README offline-first PWA / OCR / ruler → superseded by hybrid + online-only MVP.
-- CONTENT-WOO / DEPLOYMENT older “pending” create default → superseded: UAT uses **Woo draft** + `SLAB-UAT-*`.
+### Known stale (archive / historical only)
+
+- Archived PRD FR17 “Tags: fig-* only” → **wrong**. Locked model is `fig-*` (1+) + `feat-*` (0+). See DATA-MODEL.
+- Archived PRD FR19 / overview “species and wood category” pricing → **wrong**. Species `$/bdft` only. Category-weighted pricing is deferred (v1.5).
+- Archived PRD FR40 “server-side processing” and NFR “server normalization” → **wrong**. Client owns happy-path measure/crop; server stores drafts and runs U2Net on demand only.
+- Archived PRD FR42 / deploy bullets hard-coding `.201` → superseded by env-agnostic DEPLOYMENT (inventory + `APP_HOSTNAME`).
+- Older “creds client-side” decision → **wrong**. Server AES-GCM only; never browser storage for secrets.
+- Offline-first PWA / OCR / ruler product text → superseded by hybrid + online-only MVP.
+- Older “pending” Woo create default → superseded: UAT uses **Woo draft** + `SLAB-UAT-*`.
+
+### Open doc defects
+
+None known after the 2026-09-01 docs refactor on `docs/refactor-v2`. If a greppable DoD item fails, list it here before deleting reconciliation notes.
+
+---
+
+## 0b. Gates (human map)
+
+| Label | Human name | What it means |
+|---|---|---|
+| Gate A | Docs freeze | Product locks written into the repo |
+| Gate B | Run-host setup | Inventory the real host, deploy skeleton |
+| Gate C | First draft listing | One Woo draft listing with inference OFF |
+
+Phase map: **Phase 0 = Gates A+B.** **Gate C = early Phase 1** claimable publish slice. Call 1/2 after Gate C, still inside POC. Depth: `docs/IMPL-PLAN.md`.
+
+### Freeze provenance (Gate A)
+
+| SHA | What locked |
+|---|---|
+| `a94d81d` | gitea-atd `Ty_Tech/SlabUploader` as remotes SoT |
+| `457711b` | AGENTS.md + hybrid IMPL Phase 0 |
+| `4ec478f` | Contradiction patches (README/PRD/Woo/DEPLOYMENT) |
+| `4d9f307` / `4e97770` | Inference review + hybrid capture pipeline (pre-freeze baseline) |
+
+Docs refactor stack on `docs/refactor-v2` (2026-09-01) applies OPENAPI store-only, env-agnostic deploy, CONTENT-WOO/DATA-MODEL facts, hybrid Phases 1–6, PRD archive. Product locks above are unchanged.
 
 ---
 
@@ -50,6 +80,8 @@ Known stale / do-not-implement without rewrite:
 - Prompt files (server text files, read fresh)
 
 Happy path never leaves the phone until the user continues after confirmed mask + numbers.
+
+Depth: `docs/ARCHITECTURE.md`.
 
 ---
 
@@ -79,11 +111,13 @@ Encode TECH-SPEC exactly:
 - Image prep: sheet/sliders → mask confirm → length axis confirm → 3:4 PNG / 80% fill / ≥1600px when source allows.
 - **No inventing pixels. No fake upscale.** Undersized source → warn + retake; photo not publishable until retake.
 - Pricing: species `$/bdft` from Settings, seeded by Woo species sync; `rec = bdft × price_per_bdft`; user override sticks; missing rule → empty rec, manual allowed.
-- Port TECH-SPEC **TV-1 through TV-10** (including TV-10 Rounding). Client (or shared pure modules the client uses) is authoritative for math; server **stores** client-sent numbers — does not recompute as SoT. Depth: `docs/TECH-SPEC-PIPELINE.md`.
+- Port TECH-SPEC **TV-1 through TV-10** (including TV-10 Rounding). Client (or shared pure modules the client uses) is authoritative for math; server **stores** client-sent numbers — does not recompute as SoT.
+
+Depth: `docs/TECH-SPEC-PIPELINE.md`.
 
 ---
 
-## 4. Secrets & settings
+## 4. Secrets and settings
 
 **Never in browser storage / JS bundles:**
 
@@ -95,9 +129,11 @@ Encode TECH-SPEC exactly:
 
 **Browser may persist (non-secret):** sheet mode, sensitivity, edge offset, feather (localStorage OK; reset-to-default required).
 
+Why/flow: `docs/ARCHITECTURE.md` §5. Ciphertext key inventory: `docs/DATA-MODEL.md` settings table.
+
 ---
 
-## 5. Woo UAT & create status (Ty locked 2026-08-31)
+## 5. Woo UAT and create status (Ty locked 2026-08-31)
 
 - Store: **PROD** `www.whidbeywoodstore.com`
 - Mid-phase UAT creates: Woo status **draft**, SKU prefix **`SLAB-UAT-*`**
@@ -108,6 +144,8 @@ Encode TECH-SPEC exactly:
 - After successful publish: purge originals + processed images on server
 - Do **not** conflate with slab lifecycle status (below)
 
+Payload and publish sequence depth: `docs/CONTENT-WOO.md` (cites this section for safety policy). Key only: DATA-MODEL `woo_create_status`.
+
 ---
 
 ## 6. Inference (inside POC, sequenced)
@@ -116,7 +154,10 @@ Encode TECH-SPEC exactly:
 - **Gate C** claimable path: inference **OFF**; manual taxonomy + deterministic numbers + Woo draft path.
 - **Call 1 (vision) / Call 2 (text) only after Gate C is green, still inside overall POC** before “done” — not post-POC.
 - Call 1 auto only if `inference_enabled`; Call 2 never auto-fires (user taps Generate text).
+- Call 1 body: all inventory photos @1024 (not top-down-only). Confidence threshold 0.7 (configurable) lives in IMPL Phase 5 / PROMPTS.
 - LoRA deferred. No numeric/dimension invention by LLM; templates inject deterministic numbers.
+
+Prompt file mechanics: `docs/PROMPTS.md`.
 
 ---
 
@@ -131,7 +172,7 @@ Encode TECH-SPEC exactly:
 
 ---
 
-## 8. Test & delivery expectations
+## 8. Test and delivery expectations
 
 - No feature without a passing test and shown execution output (PR/commit message).
 - Deterministic core unit-tested before UI consumes it.

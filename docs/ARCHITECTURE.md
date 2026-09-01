@@ -6,7 +6,7 @@ Normative for hybrid split, swimlane, what-runs-where, secrets **why**, and stat
 transitions. Ops depth lives in DEPLOYMENT. Schema enums live in DATA-MODEL.
 Agent-facing hard rules live in AGENTS.md (verbatim locks stay there).
 
-Companion: TECH-SPEC-PIPELINE.md. PRD is historical intent only (see AGENTS precedence).
+Companion: `docs/TECH-SPEC-PIPELINE.md`. Historical PRD: `docs/archive/PRD-2026-08.txt` (frozen; not a source for new work). Agent locks: `AGENTS.md`.
 
 ## 1. Topology (hybrid)
 

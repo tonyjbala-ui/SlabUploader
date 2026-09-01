@@ -1,7 +1,7 @@
 # Technical Spec: Deterministic Image Pipeline & Area → Bdft
 
-Status: SPEC · 2026-08-27 · TyTech / SlabUploader
-Scope: PRD deliverable #1 — algorithms and test vectors for the deterministic core.
+Status: SPEC · 2026-08-27 · Gate A freeze 2026-08-31 · TyTech / SlabUploader
+Scope: algorithms and test vectors for the deterministic core (client-authoritative).
 No inference, no LLM. Everything here is a pure function of (pixels, user inputs) → outputs.
 Inference, Woo payload, API, and schema live in other docs.
 
@@ -216,4 +216,4 @@ Price 12.345 → **12.35**.
 | HTTP contract | OpenAPI |
 | Client vs server topology | Architecture |
 | Auto-dimension overlay, figure-weighted price | Impl plan (v1.5) |
-| Offline capture | PRD non-goal |
+| Offline capture | non-goal (online-only POC; see AGENTS) |

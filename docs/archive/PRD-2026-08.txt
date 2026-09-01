@@ -1,3 +1,21 @@
+# ARCHIVED — not a source for new work
+
+Frozen 2026-08-31. Historical product requirements only.
+Superseded by AGENTS.md + docs/ARCHITECTURE.md + docs/TECH-SPEC-PIPELINE.md +
+docs/DATA-MODEL.md + docs/CONTENT-WOO.md + docs/IMPL-PLAN.md (+ OPENAPI, PROMPTS, DEPLOYMENT).
+
+Non-authoritative if they conflict with the files above:
+- FR17 tag wording (locked model is fig-* 1+ and feat-* 0+)
+- FR19 / overview category-weighted pricing (species $/bdft only in POC)
+- FR40 server-side processing
+- NFR server normalization timing
+- FR42 host .201 binding (env-agnostic DEPLOYMENT + deploy/INVENTORY.md)
+- Any line listed under AGENTS.md "Known stale"
+
+Do not implement from this file. Agents: start at AGENTS.md.
+
+---
+
 # Slab Capture & WooCommerce Publishing App — PRD
 
 ## Overview
