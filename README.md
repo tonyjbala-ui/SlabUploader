@@ -35,8 +35,8 @@ Owner: Ty (Whidbey). Store: www.whidbeywoodstore.com. Deploy: .201 (Caddy, Docke
   no update path (create-only, SKU-deduped).
 
 ## Repo remotes
-- Canonical: `github.com/TyTech99/SlabUploader`
-- Mirror: Gitea `TyTech_Internal/SlabUploader` (truenas.local:30008)
+- Canonical (source of truth): Gitea `Ty_Tech/SlabUploader` on **gitea-atd** (`https://gitea.vps1.afterthedemo.com/Ty_Tech/SlabUploader`)
+- Optional later mirrors: `gitea-truenas`, GitHub — not SoT for this workstream
 
 ## Getting started (implementer)
 1. Read `AGENTS.md` (hard rules) and `docs/IMPL-PLAN.md` (phases).

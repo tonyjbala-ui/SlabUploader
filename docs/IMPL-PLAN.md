@@ -179,4 +179,4 @@ Exit gate: Ty signs off on UAT results; v1 declared done.
 - PRD acceptance criteria met (measured in Phase 6 UAT).
 - `pytest` + integration + UAT green; inference-off path green.
 - Deployed on .201, HTTPS, backed up, restore tested, runbook + key-rotation verified.
-- Repo mirrored to Gitea (GitHub canonical); docs current.
+- Repo on gitea-atd (`Ty_Tech/SlabUploader`) is source of truth; docs current.
