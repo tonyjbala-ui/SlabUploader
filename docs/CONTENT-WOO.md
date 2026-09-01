@@ -92,7 +92,7 @@ Failure → `502 woo_error`; previous cache retained (never delete-then-fail).
 {
   "name": "{title}",
   "type": "simple",
-  "status": "pending",            // test-target decision: NEVER "publish" automatically
+  "status": "{woo_create_status}", // draft | publish; default draft; SLAB-UAT-* forced draft
   "sku": "{sku}",
   "regular_price": "{price}",     // 2 dp string, e.g. "2730.00"
   "description": "{description}",
@@ -115,9 +115,11 @@ For reliability the server:
 2. Reference those `source_url` values in `images` (≤5, per PRD 1–5 inventory photos).
 3. Calibration photos are excluded (FR2).
 
-**Status = `pending`** by default (test-target decision: test products must never go
-live without human action). The Settings key `woo_publish_status` (default `pending`)
-controls this; Ty flips it to `publish` only when intentionally going live.
+**Status** comes from Settings key **`woo_create_status`** (`draft` | `publish`, default
+**`draft`**). UAT on PROD uses Woo **draft** plus SKU prefix `SLAB-UAT-*` (hard rule:
+`SLAB-UAT-*` always creates as Woo draft even if Settings say publish). Flip to
+`publish` only for intentional live inventory after Ty review. Do not conflate with
+slab lifecycle status `published` (means Woo create succeeded locally).
 
 ### 2.5 Dedupe & idempotency (FR24a)
 Before create: `GET /products?sku={sku}`.
@@ -141,7 +143,7 @@ Before create: `GET /products?sku={sku}`.
 3. (re)sync taxonomy if cache older than 1h       → best-effort; use existing cache on fail
 4. resolve category/tags/attributes (auto-assign + overrides)
 5. upload normalized inventory images → media     → source_urls
-6. POST /products (status=pending)                → woo_product_id
+6. POST /products (status=woo_create_status)      → woo_product_id
 7. write sync_log(success), set slab published, purge images
    on any failure at 2–6: write sync_log(failed), slab=failed, (images retained for retry)
 ```

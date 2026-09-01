@@ -126,7 +126,7 @@ the call returns. WooCommerce is the authoritative source for `feat-*` definitio
   "inference_model": "<model>", "inference_enabled": true,
   "content_llm_enabled": false,
   "brand_voice": "...", "geo_context": "...",
-  "publish_status": "published",
+  "woo_create_status": "draft",
   "aspect_ratio": "3:4", "output_px": 1600, "output_px_min": 1600,
   "fill_target": 0.80,
   "user_sensitivity": 0.5, "user_edge_offset": 0, "user_feather": 1,
@@ -139,7 +139,7 @@ Secrets (keys) are never returned. Only a `*_configured` boolean.
 ## Endpoints
 
 ### Health & meta
-- `GET /api/v1/health` → `{ "status":"ok", "version":"...", "woo_reachable": bool }`
+- `GET /api/health` → `{ "status":"ok", "version":"...", "woo_reachable": bool }` (canonical deploy/smoke path; may also be exposed as `/api/v1/health`)
 - `GET /api/v1/meta` → `{ "version":"...", "templates_configured": bool }`
 
 ### Slabs

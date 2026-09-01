@@ -179,7 +179,7 @@ Keys:
 - `inference_base_url`, `inference_api_key`, `inference_model`
 - `inference_enabled`, `content_llm_enabled`
 - `brand_voice`, `geo_context`
-- `publish_status` ('published' | 'draft')
+- `woo_create_status` ('draft' | 'publish'), default `draft` — Woo product create status; not slab lifecycle
 - `aspect_ratio` ('3:4'), `output_px` (1600), `output_px_min` (1600), `fill_target` (0.80)
 - `user_sensitivity`, `user_edge_offset`, `user_feather`, `user_sheet_mode`
 

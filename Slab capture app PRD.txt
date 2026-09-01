@@ -16,6 +16,13 @@ publish pipeline.
 - Images are purged after successful publish (retained only while draft/retry).
 - Deploy target: .201, Docker Compose + Caddy.
 
+## Decisions log (2026-08-31, POC freeze via CoS/PPM/Dev Manager)
+- Doc contradiction freeze: TECH-SPEC + ARCHITECTURE win over stale PRD/IMPL-PLAN lines.
+- AGENTS.md added; bdft = sqft × thickness_in; secrets server AES-GCM; online-only POC;
+  woo_create_status draft|publish (default draft); SLAB-UAT-* force Woo draft on PROD;
+  hybrid client happy-path; inference OFF for first claimable publish, Call 1/2 after.
+- See `/workspace/slabuploader-poc-review-package.md` review package (not in repo) and AGENTS.md.
+
 ## Decisions log (2026-08-27, Ty)
 1. No calibration photos — user manually enters SKU, length, thickness.
 2. First photo is the measurement photo (must be top-down, lens parallel to broad side).
@@ -32,10 +39,13 @@ publish pipeline.
 10. Call 1 runs automatically after calibration **only if** inference is enabled.
     User reviews/corrects before triggering Call 2.
 11. Inference timeout >45s or non-200 → error with retry. User can fill fields manually.
-12. Woo product status set to "published" by default (configurable in settings).
+12. Woo create status: Settings key `woo_create_status` = draft | publish, default **draft**.
+    UAT on PROD uses Woo draft + SKU prefix SLAB-UAT-* (forced draft). Final POC: one real
+    SKU → Woo publish after Ty review. (Supersedes older "published by default" / pending smoke.)
 13. Inference prompts are server-side text files, read fresh on each invocation.
 14. Brand voice + GEO context injected into Call 2 prompt.
-15. WooCommerce credentials (username + App Password) stored client-side in settings.
+15. WooCommerce credentials stored server-side only (AES-GCM in SQLite via Settings UI).
+    Never in the browser. (Supersedes older client-side storage decision.)
 16. Inference endpoint: configurable OpenAI-compatible API (user provides base URL, key, model).
 17. Test connection verifies text completion + vision support.
 18. Offline capture not required for MVP.
@@ -97,7 +107,8 @@ publish pipeline.
 - **FR2:** User manually enters SKU (3-24 chars, [A-Z0-9-]), length (in), thickness (in).
 - **FR3:** App detects background color from image borders (green or black sheet).
 - **FR4:** First photo: BG removal - find longest dimension - compute scale
-  (longest_px / user-length) - compute area (sqft) - bdft = sqft * thickness / 12.
+  (longest_px / user-length) - compute area (sqft) - bdft = sqft * thickness_in
+  (TECH-SPEC authoritative; the old "/ 12" formula is wrong and must not be implemented).
 - **FR5:** All photos: BG removal - crop to 80% frame fill - save as transparent
   PNG, minimum 1600 px on smaller dimension, 3:4 portrait crop (configurable).
 - **FR6:** User can retake the first photo or abort and start fresh.
@@ -169,7 +180,8 @@ publish pipeline.
 - **FR34:** Publish is blocked if the slab SKU already exists (simple dedupe, no update path).
 - **FR35:** Create WooCommerce product with SKU, title, description, short description,
   price, categories, attributes, tags, and normalized PNG images.
-- **FR36:** Default product status: "published" (configurable in settings).
+- **FR36:** Default Woo create status: "draft" via `woo_create_status` (draft | publish).
+  SLAB-UAT-* SKUs always create as Woo draft. Real inventory may use publish after Ty review.
 - **FR37:** Log sync results and surface errors; store WooCommerce product ID on success.
 
 ### Drafts, review, and publish
@@ -199,12 +211,14 @@ publish pipeline.
 - SvelteKit (mobile-first)
 - TailwindCSS for UI
 - Camera API for capture and immediate preview
-- No OCR, no OpenCV on client
+- Hybrid client (ARCHITECTURE / TECH-SPEC): capture, sheet/sliders, mask confirm,
+  length axis, sqft/bdft/widths, 3:4 PNG normalization on the phone. No OCR/ruler
+  in POC. Offline PWA deferred.
 
 **Server (self-hosted, containerized)**
-- FastAPI (Python) for deterministic image pipeline, bdft math, pricing,
-  background removal, crop/normalize, WooCommerce REST integration,
-  inference wrappers, taxonomy sync
+- FastAPI (Python): draft store, on-demand U2Net ("try harder"), WooCommerce REST,
+  inference proxy, taxonomy sync, AES-GCM settings. Server does **not** own the
+  happy-path measure/crop pipeline (client is math SoT).
 - SQLite for v1 (slab records, pricing rules, taxonomy cache, sync history)
 
 **Inference**
@@ -235,8 +249,9 @@ updated_at: timestamp
 1. New slab: user stages slab and opens app.
 2. Capture: take 1-5 inventory photos.
 3. Enter metadata: SKU, length, thickness.
-4. Calibration: server processes first photo (BG removal, area, bdft),
-   processes all photos (BG removal, crop, PNG).
+4. Calibration: on phone — BG removal + sliders, confirm mask, confirm length axis,
+   enter length/thickness/SKU; client computes sqft/bdft/widths and 3:4 PNGs.
+   Optional server U2Net "try harder" on one photo if mask fails.
 5. Inference: Call 1 auto-runs (vision), populating taxonomy/content.
    User reviews/corrects. Call 2 user-triggered (text), generating
    title/description/short description.

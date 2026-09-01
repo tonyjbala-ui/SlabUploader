@@ -2,6 +2,8 @@
 
 Status: SPEC (deliverable #4) · 2026-08-24 · SlabUploader
 Target: TyUBUMini at 192.168.1.201. Domain: `slab.tyubumini.local` (LAN/Tailscale
+
+> Gate A freeze (2026-08-31): hybrid client owns measure/crop SoT. Do not scaffold a server ruler/pipeline as authoritative. Woo UAT = draft + SLAB-UAT-* on PROD.
 only — Decision). Inference is NOT on .201; it's a remote configurable endpoint
 (.202 or elsewhere).
 
@@ -39,7 +41,7 @@ SlabUploader/
 └── backend/                       # FastAPI app (Phase 0)
     ├── app/
     │   ├── main.py
-    │   ├── pipeline/              # deterministic core (constants.py, ruler, geometry, widths, pricing, normalize)
+    │   ├── (no happy-path pipeline SoT here)  # hybrid: TECH-SPEC modules live in frontend/ or shared pure TS; backend = store/Woo/inference/U2Net stub
     │   ├── woo/                   # Woo client, taxonomy, publish
     │   ├── inference/             # vision + content wrappers (toggleable)
     │   ├── prompts/               # call1.txt, call2.txt (shipped defaults)
@@ -146,12 +148,12 @@ provide `python -m app.security.rekey NEW_KEY` (reads old key from env
 | Reset one slab | delete its photos dir + `UPDATE slabs SET status='draft'` (admin script) |
 
 ## 8. Smoke test (after every deploy)
-1. `GET /api/health` → ok
-2. Settings: Woo creds configured + `test-woo` ok
+1. `GET /api/health` → ok (from phone over HTTPS once CA trust is proven)
+2. Settings: Woo creds + `test-woo` ok; `woo_create_status=draft`; inference OFF for early gates
 3. Create a slab → upload test photos (fixture set) → poll to `ready`
-4. Verify bdft/price match the fixture's expected values (golden test)
-5. Publish test slab → `published`, Woo product visible as **pending** in store admin
-6. Delete/leave the pending test product as a staging artifact (never published)
+4. Verify bdft/price match the fixture's expected values (golden test; bdft = sqft × thickness)
+5. Publish test slab with SKU `SLAB-UAT-…` → slab may show local `published`; Woo product must be **draft**
+6. Leave or delete the Woo draft UAT product (never customer-visible). Final live publish is a non-UAT SKU after Ty review.
 
 ## 9. Scaling path (not v1)
 - Postgres when SQLite write contention appears (schema already portable).
