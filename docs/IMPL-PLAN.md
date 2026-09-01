@@ -1,6 +1,7 @@
 # Implementation Plan
 
-Status: SPEC · 2026-08-24 · SlabUploader
+Status: SPEC · Gate A freeze 2026-08-31 · SlabUploader
+Phase 0 rewritten for hybrid topology (client-authoritative TECH-SPEC). Phases 1+ still contain stale offline/OCR/ruler/pending language — do not implement those lines; follow AGENTS.md.
 The build plan a professional (or a fresh Hermes session) executes against. Each
 phase has: goal, deliverables, acceptance criteria (testable), and exit gate.
 Ordering is by dependency — do not skip ahead. Definition of done for EVERY phase:
@@ -14,27 +15,55 @@ Ground rules (from AGENTS.md):
 
 ---
 
-## Phase 0 — Skeleton & deterministic core (server)
-Goal: repo scaffold + the tested deterministic pipeline, no UI, no Woo.
+## Phase 0 — Hybrid skeleton & client deterministic core (= Gates A+B)
+
+Goal: scaffold the hybrid app and ship a **tested client-authoritative** TECH-SPEC
+pipeline (mask → axis → sqft/bdft → 3:4 PNG) plus a minimal FastAPI store/settings
+shell. No Woo publish, no inference, no offline/OCR/ruler.
+
+**Gate A (docs):** AGENTS.md + this Phase 0 rewrite + review package locks (signed
+2026-08-31). **Gate B (infra/code):** items below.
+
+Scope — in:
+- Repo layout: `frontend/` (SvelteKit), `backend/` (FastAPI), `deploy/` stubs; docs stay SoT.
+- Client pure modules implementing TECH-SPEC: constants, sheet/chroma/black + sliders,
+  mask confirm hooks, length axis, scale, 6" widths, sqft, **bdft = sqft × thickness_in**,
+  pricing rec from species $/bdft, 3:4 PNG / 80% fill / ≥1600 guard (**no upscale**).
+- FastAPI: app factory, logging, config, `GET /api/health`, SQLite + alembic skeleton,
+  settings stub with AES-GCM round-trip (secrets never returned on GET), draft store stub
+  (accept client numbers + files — store only, do not recompute SoT).
+- `deploy/docker-compose.yml`, `Caddyfile.fragment`, `.env.example` (placeholders only).
+- Unit tests for TECH-SPEC **TV-1…TV-9** (esp. TV-3 bdft, TV-6/7 crop/no-upscale, TV-8 pricing).
+- Fixture photo set for Ty Gate B review.
+
+Scope — out:
+- Server happy-path pipeline / CLI that recomputes mask/crop/bdft as SoT.
+- Real U2Net (stub OK; on-demand later).
+- Woo create/publish, live taxonomy sync (mock/seed species list OK later).
+- Inference Call 1/2, LoRA.
+- Offline PWA, IndexedDB sync, OCR, ruler.
+- Fake upscale / inventing pixels.
 
 Deliverables:
-- `backend/` FastAPI skeleton: app factory, health endpoint, config, logging.
-- `pipeline/` implementing TECH-SPEC: constants.py, ruler→scale, geometry, width
-  sampler, bdft math, pricing, green-removal, crop/normalize, merch filter.
-- `db/`: schema.sql + alembic migration for all tables (DATA-MODEL).
-- `tests/`: port every TECH-SPEC test vector (TV-1…TV-9) to pytest; add property
-  tests (bdft monotonic in inputs; width sampler returns 3–5 points; crop fill ∈
-  [0.75,0.85]).
-- Dockerfile for backend; runs `pytest` in CI/local.
+- `frontend/` scaffold + deterministic modules + unit tests TV-1…TV-9.
+- `backend/` FastAPI health + settings encryption + draft persistence stub + schema migration baseline.
+- `deploy/` compose + `.env.example` + Caddy fragment.
+- Shown output in PR/commit: printed TV-3, TV-6, and TV-7 (no-upscale/retake) on **real fixtures**.
 
 Acceptance:
-- `pytest` green, covering all 9 TVs + property tests; coverage of `pipeline/` ≥ 95%.
-- `GET /api/health` works on the dev container.
-- A fixture photo set (3–5 real slab photos) runs end-to-end through the pipeline
-  CLI (`python -m app.pipeline.run <dir>`) and prints bdft/widths/normalized outputs
-  matching hand-computed expectations.
+- Gate B: client (or shared pure) tests green for TECH-SPEC vectors; bdft identity holds
+  (no `/12`); undersized source warns and refuses fake upscale.
+- `GET /api/health` up in compose over HTTPS hostname after `.201` inventory + Caddy merge.
+- Settings AES round-trip; secret fields never appear in GET.
+- Draft can store client-uploaded originals + PNGs + numbers without server recompute.
+- Coverage target: deterministic modules ≥ 95% where practical; property checks
+  (bdft monotonic in thickness/sqft; fill band; no upscale path).
 
-Exit gate: Ty reviews the pipeline CLI output on real photos; math confirmed.
+Exit gate: Ty confirms Gate B math/image prep shown output on real fixtures; health +
+encrypted settings + draft store stub demonstrated (curl or thin UI).
+
+**Next (not Phase 0):** Gate C = early Phase 1 claimable publish — Woo **draft** +
+`SLAB-UAT-*` on prod, inference OFF. Call 1/2 after Gate C, still inside POC.
 
 ## Phase 1 — API surface (no Woo, no inference)
 Goal: full slab CRUD + photo upload + settings, backed by the Phase-0 core.
@@ -55,6 +84,8 @@ Acceptance:
 Exit gate: Ty drives the API with curl through a full draft→ready cycle.
 
 ## Phase 2 — Frontend: capture & offline PWA
+> **SUPERSEDED for POC (Gate A 2026-08-31):** online-only; no OCR/ruler/offline PWA. Do not implement this section as written. Capture UX moves to early Phase 1 / Gate C shape per AGENTS.md.
+
 Goal: mobile-first capture flow, fully offline, with the local light pass.
 
 Deliverables:
@@ -93,26 +124,27 @@ Acceptance:
 - Inference disabled → review screen fully functional with manual species/character.
 - Every field is editable and the override persists (asserted in a test).
 
-Exit gate: Ty publishes a test slab to the real store as a **pending** product.
+Exit gate: Ty publishes a test slab to the real store as a **Woo draft** (`SLAB-UAT-*`) product.
+(Gate A lock: not pending/published for UAT.)
 
 ## Phase 4 — WooCommerce integration (real)
 Goal: production Woo sync, taxonomy, dedupe, logging (FR24–28).
 
 Deliverables:
 - Woo client (httpx, Basic auth, timeouts), taxonomy sync, auto-assign, media upload,
-  product create (status=pending default), dedupe, sync_log.
+  product create via `woo_create_status` (default **draft**; `SLAB-UAT-*` forces draft), dedupe, sync_log.
 - `POST /api/admin/taxonomy/sync` against the real store.
 - Integration tests against a Woo mock (respx) for success + error + duplicate paths.
 - Partial-failure handling (orphaned media noted, per CONTENT-WOO §2.6).
 
 Acceptance:
-- Real publish: product appears in store admin as pending, correct SKU/price/images/
+- Real UAT publish: product appears in store admin as **draft** under `SLAB-UAT-*`, correct SKU/price/images/
   category/tags; `woo_product_id` stored; `sync_log` written with payload_hash.
 - Duplicate SKU publish → 409, no second product created.
 - Woo error (bad creds / 500) → slab `failed` with detail; retry path works.
 - All Woo integration tests green (mock + one live smoke).
 
-Exit gate: Ty verifies a real pending product in the store is correct.
+Exit gate: Ty verifies a real **Woo draft** `SLAB-UAT-*` product in the store is correct.
 
 ## Phase 5 — Inference (vision + optional content)
 Goal: scoped, toggleable inference with guardrails.
