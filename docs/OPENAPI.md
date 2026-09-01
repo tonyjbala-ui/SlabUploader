@@ -60,6 +60,7 @@ URL is `/api/v1`. Breaking changes bump to `/api/v2`.
   "thickness_term_id": 12,   // → woo_attribute_terms (round-up)
   "moisture_term_id": 5,     // → woo_attribute_terms (defaults kiln-dried)
   "fig_tag_ids": [99],       // JSON array → woo_tags (fig-*, 1+)
+  "feat_tag_ids": [42],      // JSON array → woo_tags (feat-*, 0+)
   "price_per_bdft": 12.50,   // from pricing_rules
   "price": 12.00,            // 2 decimals
   "price_source": "recommendation|override|null",
@@ -86,6 +87,11 @@ All `SlabCreate` fields (resolved) plus:
 ```
 
 ### InferenceCall1Result (returned by infer-taxon)
+
+Taxonomy fields are Woo IDs from the synced cache. Character/inclusions/voids/checks
+are free-text observations; the server maps them to Woo `feat-*` product tags after
+the call returns. WooCommerce is the authoritative source for `feat-*` definitions.
+
 ```jsonc
 { "species_id": 42, "species_confidence": 0.92,
   "wood_category_ids": [15, 23],
@@ -139,7 +145,7 @@ Secrets (keys) are never returned. Only a `*_configured` boolean.
 ### Slabs
 - `POST /api/v1/slabs` — Create a calibrated draft. Body: multipart with `data` (SlabCreate JSON) + `files[]` (photos) + `meta[]` (photo metadata).
   - Returns `201` `Slab` (status `draft`).
-  - Server auto-runs Call 1 (vision inference). `inference_status` becomes `inferring`, then `done`/`failed`.
+  - Server auto-runs Call 1 **only if** `inference_enabled` is true. `inference_status` becomes `inferring`, then `done`/`failed`.
   - `409 duplicate_sku` if SKU already published.
 - `GET /api/v1/slabs` → `200` `[Slab]` (most recent first).
 - `GET /api/v1/slabs/{id}` → `200` `Slab` / `404`.
@@ -159,11 +165,19 @@ Secrets (keys) are never returned. Only a `*_configured` boolean.
 
 ### Inference
 - `POST /api/v1/slabs/{id}/infer-taxon` — Trigger or retry Call 1 (vision).
-  - Server uses cached taxonomy + original photos downscaled to 1024px + user metadata.
+  - Server reads the Call 1 prompt file fresh, uses cached taxonomy + original
+    photos downscaled to 1024px + user metadata, and sends to the configured
+    vision endpoint.
   - Returns `202` `{ "status": "inferring" }`. Client polls `GET /api/v1/slabs/{id}` for results.
   - Timeout > 45s → `504 gateway_timeout` with error detail.
 - `POST /api/v1/slabs/{id}/infer-content` — Trigger Call 2 (text).
-  - Server uses curated Call 1 results + deterministic numbers + brand voice + GEO context + prompt.
+  - Server reads the Call 2 prompt file fresh, uses available taxonomy
+    (from Call 1 results or manually-entered values) + deterministic numbers
+    + brand voice + GEO context, sends to the LLM for prose generation, then
+    assembles title/description/short description from deterministic templates
+    with the LLM prose injected.
+  - Requires that inference was previously tested as connected
+    (`test-inference` succeeded at least once). If not connected, returns `422`.
   - Returns `202` `{ "status": "inferring" }`. Client polls for results.
   - Timeout > 45s → `504` with error detail.
 

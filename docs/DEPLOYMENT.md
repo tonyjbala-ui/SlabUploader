@@ -42,6 +42,7 @@ SlabUploader/
     │   ├── pipeline/              # deterministic core (constants.py, ruler, geometry, widths, pricing, normalize)
     │   ├── woo/                   # Woo client, taxonomy, publish
     │   ├── inference/             # vision + content wrappers (toggleable)
+    │   ├── prompts/               # call1.txt, call2.txt (shipped defaults)
     │   ├── api/                   # routers (slabs, photos, pricing, taxonomy, settings)
     │   ├── db/                    # schema.sql, models, migrations (alembic)
     │   └── security/              # AES-GCM settings encryption
@@ -67,6 +68,7 @@ services:
     volumes:
       - slab_db:/data
       - slab_images:/images
+      - ./prompts:/app/prompts:ro       # prompt files, read-only mount
     ports: ["127.0.0.1:${FASTAPI_PORT:-18081}:8000"]  # Caddy-only
     mem_limit: 2g                            # env convention: mem_limit preferred
     restart: unless-stopped
@@ -119,8 +121,9 @@ provide `python -m app.security.rekey NEW_KEY` (reads old key from env
 ```
 1. sqlite3 /data/slab.db ".backup /backups/slab-YYYYMMDD.db"   # WAL-safe
 2. tar czf /backups/slab-images-YYYYMMDD.tgz -C /images .
-3. retain: 7 daily + 4 weekly; prune older
-4. log result to /var/log/slab-backup.log; alert (Hermes) on failure
+3. cp -r /backups/prompts-YYYYMMDD.tar.gz prompts/              # prompt files
+4. retain: 7 daily + 4 weekly; prune older
+5. log result to /var/log/slab-backup.log; alert (Hermes) on failure
 ```
 - Backup target: local dir first; mirror to TrueNAS SMB share
   (`\\truenas.local\…\backups\slab`) for off-box safety (same pattern as other stacks).
@@ -138,6 +141,7 @@ provide `python -m app.security.rekey NEW_KEY` (reads old key from env
 | Rekey AES | §5 |
 | Rotate Woo creds | Woo UI → new consumer key/secret → Settings UI → `POST /api/settings/test-woo` |
 | Rotate inference key | Settings UI (if external) |
+| Edit a prompt | Edit the text file on host, no restart needed (read fresh each time) |
 | Rollback image | `git checkout <tag>` → rebuild → up -d; DB down-migrations provided for schema changes |
 | Reset one slab | delete its photos dir + `UPDATE slabs SET status='draft'` (admin script) |
 

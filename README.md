@@ -19,6 +19,7 @@ Owner: Ty (Whidbey). Store: www.whidbeywoodstore.com. Deploy: .201 (Caddy, Docke
 | `docs/DATA-MODEL.md` | SQLite schema + status state machine |
 | `docs/OPENAPI.md` | Client↔server API contract (deliverable #2) |
 | `docs/CONTENT-WOO.md` | Content templates + WooCommerce payload/integration |
+| `docs/PROMPTS.md` | Call 1 vision prompt + Call 2 content prompt (server files) |
 | `docs/DEPLOYMENT.md` | Compose, Caddy, backup/restore, key rotation (deliverable #4) |
 | `docs/IMPL-PLAN.md` | Phased build plan with acceptance criteria + exit gates |
 | `AGENTS.md` | Working contract + hard rules for anyone implementing |

@@ -18,7 +18,7 @@ phone (SvelteKit)
 
 server
   reverse proxy → frontend (static)
-        → fastapi : store, settings, prompts, taxonomy, Woo, inference proxy, U2Net
+        → fastapi : store, settings, taxonomy, Woo, inference proxy, U2Net, prompt files
 ```
 
 - Happy path never leaves the phone.
@@ -77,8 +77,15 @@ flowchart TB
 1. **Happy path** stays on the phone through PNG + numbers. FastAPI is idle until the user has a confirmed mask (or taps Try harder).
 2. **Try harder** is U2Net on **one photo** (the one on screen). Mask comes back; sliders still apply. Not a full re-pipeline on the server.
 3. **Draft upload** sends **originals + processed PNGs + length/thickness/SKU/sqft/bdft/widths**. Originals are needed if Call 1 or a later retry must not depend on the tab still being open. After successful Woo publish, server deletes both.
-4. **Call 1** is server-side so the vision key never sits in the browser. Body: all originals downscaled to 1024 + Woo taxonomy snapshot + SKU/length/thickness. Timeout 45s → error + retry on the phone. User **must** curate before Call 2.
-5. **Call 2** does not auto-fire. User taps Generate text. Server sends curated Call 1 + deterministic numbers + brand/GEO + prompt.
+4. **Call 1** is server-side so the vision key never sits in the browser. Auto-run
+   on slab create **only if** `inference_enabled` is true. If disabled, Call 1
+   is skipped; user can manually fill taxonomy and still trigger Call 2. Body:
+   all originals downscaled to 1024 + Woo taxonomy snapshot + SKU/length/thickness.
+   Timeout 45s → error + retry on the phone. User reviews/corrects results.
+5. **Call 2** does not auto-fire. User taps Generate text. Server sends curated
+   Call 1 results (or manually-entered taxonomy if Call 1 failed) + deterministic
+   numbers + brand/GEO for prose generation; assembles title/description/short
+   description from deterministic templates with the LLM prose injected.
 6. **Woo** is only FastAPI. Browser never sees the App Password. Duplicate SKU → stop, show error, no edit-same-SKU in MVP.
 7. **Settings** (species $/bdft, prompts, endpoint, Woo, publish status) live on the server; the phone is just the form.
 
@@ -90,7 +97,7 @@ flowchart TB
 | Sheet detect, chroma-key / black threshold, sliders, flood-fill | Client |
 | U2Net | Server, on demand |
 | Length axis overlay, 6" widths, sqft, bdft | Client |
-| 3:4 PNG, 80% fill | Client |
+| 3:4 PNG, 80% fill (configurable aspect) | Client |
 | Draft + originals + processed PNGs | Server (after user continues) |
 | Species $/bdft, Woo creds, prompts, brand/GEO | Server |
 | Call 1 (vision, all photos @1024) | Server proxy |

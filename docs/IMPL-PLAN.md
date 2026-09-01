@@ -85,7 +85,7 @@ Deliverables:
   threshold).
 - Publish button (online-only), status polling, success/failure states, error detail.
 - Settings UI (FR32): Woo creds + test, inference endpoint + test (vision check),
-  pricing rules editor, brand voice/GEO, templates.
+  pricing rules editor, brand voice/GEO. Prompts are server files, not UI settings.
 
 Acceptance:
 - Full round-trip in browser: capture→upload→review→edit→publish→published (against
@@ -119,9 +119,12 @@ Goal: scoped, toggleable inference with guardrails.
 
 Deliverables:
 - Vision wrapper: species/character detection from the top-down photo via the
-  configurable OpenAI-compatible endpoint; returns confidence; logs request/response.
-- Content refinement (optional LLM) with the numeric-accuracy guardrail (CONTENT-WOO
-  §1.2).
+  configurable OpenAI-compatible endpoint; model constrained to Woo species list
+  for accuracy; returns confidence (threshold 0.7, configurable); logs
+  request/response.
+- Content wrapper: Call 2 reads prompts/call2.txt; LLM writes prose only,
+  dimensions injected by deterministic templates. No numeric guardrail needed.
+  See docs/PROMPTS.md.
 - `test-inference` endpoint (vision capability check).
 - All inference code behind feature flags; suite passes with everything OFF.
 
@@ -130,8 +133,8 @@ Acceptance:
   confidence; low confidence → manual confirm required.
 - With inference OFF: full app works, tests green (explicit test asserts no network
   calls to the inference endpoint).
-- LLM refinement rejects output that alters a measurement (guardrail test).
 - Inference payloads stored for audit (asserted present after a call).
+- Call 1 prompt file edits survive server restart (read fresh each invocation).
 
 Exit gate: Ty runs species detection on 3 real slabs; results acceptable or manually
 corrected (that's the design).

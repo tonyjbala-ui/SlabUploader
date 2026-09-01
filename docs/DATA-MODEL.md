@@ -38,6 +38,7 @@ Draft-only. Deleted on successful publish. WooCommerce is the source of truth fo
 | `thickness_term_id` | INTEGER | → woo_attribute_terms (round-up) |
 | `moisture_term_id` | INTEGER | → woo_attribute_terms (1 required, defaults to kiln-dried term; user overrides; not inferred) |
 | `fig_tag_ids` | INTEGER[] JSON | → woo_tags (fig-*, 1+) |
+| `feat_tag_ids` | INTEGER[] JSON | → woo_tags (feat-*, 0+) |
 | `price_per_bdft` | REAL | from pricing_rules for species |
 | `price` | REAL NOT NULL | 2 decimals |
 | `price_source` | TEXT | 'recommendation' \| 'override' |
@@ -158,7 +159,8 @@ The actual selectable values. E.g., "Cathedral" under Figure, "1\"–1 1/2\"" un
 | `slug` | TEXT | |
 | `synced_at` | TEXT | |
 
-Only `fig-*` tags. Other Woo tags ignored.
+Only `fig-*` and `feat-*` tags. Other Woo tags ignored. WooCommerce is the
+authoritative source for tag definitions; this table caches synced Woo tags.
 
 `UNIQUE(woo_id)`.
 
@@ -177,10 +179,14 @@ Keys:
 - `inference_base_url`, `inference_api_key`, `inference_model`
 - `inference_enabled`, `content_llm_enabled`
 - `brand_voice`, `geo_context`
-- `prompts` (JSON: call1_prompt, call2_prompt, reset-to-default)
 - `publish_status` ('published' | 'draft')
 - `aspect_ratio` ('3:4'), `output_px` (1600), `output_px_min` (1600), `fill_target` (0.80)
 - `user_sensitivity`, `user_edge_offset`, `user_feather`, `user_sheet_mode`
+
+**Prompt files** — not in the settings table. Stored as text files in
+`/data/prompts/` (server volume). Read fresh on each invocation. Default
+prompts shipped with the app; owner edits directly. A reset-to-default script
+restores originals.
 
 AES master key is an env var (`SLAB_AES_KEY`, 32 bytes base64). Never in the DB.
 Each `value_enc` = `nonce(12) || ciphertext`.

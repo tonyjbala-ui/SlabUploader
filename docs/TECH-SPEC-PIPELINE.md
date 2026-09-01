@@ -115,7 +115,8 @@ Round to 2 decimals. Identity: 1 sqft at 1" thick = 1 bdft.
 
 Applies to every inventory photo of the slab (first photo and the rest).
 
-- Crop aspect: **3:4 portrait** (settings default; matches the current PIP).
+- Crop aspect: **3:4 portrait** (default; matches the WooCommerce template;
+  configurable in settings).
 - Transparent **PNG only**.
 - Slab centered. **80% fill at the extremes** (widest and tallest points of the slab). Extra margin where the slab is narrower.
 - After crop, if the source has enough pixels, shorter side ≥ **1600 px**. If it cannot, warn and ask for a retake — do not invent pixels.
@@ -202,7 +203,7 @@ Price 12.345 → **12.35**.
 4. sqft is the projected top-down area of the mask. Live-edge thickness and underside are not in the area.
 5. bdft = sqft × thickness (inches). Not rounded up to whole board feet.
 6. Sheet is uniform green or black. Odd colors → user picks sheet mode or retakes.
-7. 3:4 is the PIP crop. Changing it later is a settings/code change.
+7. 3:4 portrait is the PIP crop, configurable in settings.
 8. Client does all of this math. Server stores the numbers the client sends.
 
 ## 10. Out of scope here (covered in other docs)
