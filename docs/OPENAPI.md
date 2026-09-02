@@ -17,7 +17,7 @@ Uniform envelope:
 - `400 validation` — payload failed validation.
 - `404 not_found` — unknown slab/photo/setting.
 - `409 revision_conflict` — client_rev/server_rev mismatch. `detail` carries `current_server_rev`.
-- `409 duplicate_sku` — SKU already published in WooCommerce.
+- `409 duplicate_sku` — SKU already exists in WooCommerce, any status (draft, private, publish, etc.).
 - `422 unpublishable` — slab not in a publishable state or missing required field.
 - `502 woo_error` — WooCommerce rejected the request. `detail` carries Woo error body.
 - `500 internal` — unexpected.
@@ -145,7 +145,7 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 - `POST /api/v1/slabs` — Create a calibrated draft. Body: multipart with `data` (SlabCreate JSON) + `files[]` (photos) + `meta[]` (photo metadata).
   - Returns `201` `Slab` with `status: "calibrated"` (mask + axis confirmed; client-sent sqft/bdft/widths stored).
   - Server auto-runs Call 1 **only if** `inference_enabled` is true. `inference_status` becomes `inferring`, then `done`/`failed`.
-  - `409 duplicate_sku` if SKU already published.
+  - `409 duplicate_sku` if SKU already exists in Woo, any status.
 - `GET /api/v1/slabs` → `200` `[Slab]` (most recent first).
 - `GET /api/v1/slabs/{id}` → `200` `Slab` / `404`.
   - Also used as the poll endpoint for inference and publish. Long-running ops set status to `inferring`/`publishing`; client backs off (1s, 2s, 4s, cap 10s).
@@ -183,7 +183,7 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 ### Publish
 - `POST /api/v1/slabs/{id}/publish` — Publish to WooCommerce.
   - Pre-conditions: status in `ready`, all required fields set. Else `422 unpublishable`.
-  - Dedupe: if SKU already has a published product → `409 duplicate_sku`.
+  - Dedupe: if SKU already exists in Woo under any status → `409 duplicate_sku`.
   - Returns `202` `{ "status": "publishing" }`. Client polls.
   - Woo failure → slab `failed`, `sync_log` written, poll returns `502 woo_error`.
   - Success → slab `published`, `woo_product_id` set, images purged, draft row deleted.
