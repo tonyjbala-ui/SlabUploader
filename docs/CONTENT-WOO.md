@@ -88,17 +88,16 @@ and the final stored content.
 Rebuilds cache tables in one transaction. Failure → `502 woo_error`; previous
 cache retained (never delete-then-fail).
 
-**Manufactured anchor.** Woo REST has **no** usable last-modified on categories,
-attributes, or tags. FastAPI manufactures one `taxonomy_updated_at` /
-`cache_anchor` for the whole cache. Bump **only** when a row-level change hits the
-**stored subset** of cache columns (schema-driven: new columns auto-enter the
-diff). Catch adds, edits, and deletions. A no-op sync does **not** bump. Client
-re-pulls the full taxonomy iff the anchor advanced past its last value. One
-timestamp governs all metadata kinds. Do not invent a Woo-side taxonomy timestamp.
+**Manufactured stamps.** Woo REST has **no** usable last-modified on categories,
+attributes, or tags. FastAPI persists `taxonomy_last_sync_at` (every successful
+pull) and `taxonomy_anchor` (bump only when stored-subset hash changes, including
+deletions). Client re-pulls the full taxonomy iff the anchor advanced. Do not
+invent a Woo-side taxonomy timestamp. Do not sync per navigation.
 
-**Triggers:** (1) successful `test-woo` **always** resyncs; (2) publish path if last
-successful sync older than **1 hour** (bump only on real change); (3) optional app
-launch / Settings refresh. Not every navigation.
+**Triggers:** (1) successful `test-woo` **always** resyncs; (2) publish if
+`now - taxonomy_last_sync_at > 1 hour` then reconcile (bump only on real change);
+(3) optional app launch / Settings refresh. Stale selected IDs after a bump are
+#18 422, not a silent remap.
 
 **Species exclusivity.** UI pickers, pricing seeds, and Call 1 species lists are
 **exactly** the synced species-category leaves. No hardcoded, invented, or fallback
@@ -196,7 +195,7 @@ Success path unchanged: set `woo_product_id`, local `published`, purge images.
 ```
 1. validate via shared validation module (hash check on submit; see ARCHITECTURE §8)
 2. dedupe by SKU (GET /products?sku=, any status) → 409 duplicate_sku if exists
-3. (re)sync taxonomy if last sync >1h; bump cache_anchor only on stored-subset change
+3. (re)sync taxonomy if last_sync >1h; bump taxonomy_anchor only on stored-subset hash change
 4. resolve category/tags/attributes (Call 1 / manual + name-match; synced set only)
 5. upload processed PNG inventory images → media  → source_urls
 6. POST /products (status per AGENTS §5 + woo_create_status) → woo_product_id
@@ -213,9 +212,11 @@ Success path unchanged: set `woo_product_id`, local `published`, purge images.
 
 ## 4. Field-level Woo errors (presentation in `docs/UX.md`)
 
-API codes stay on the wire. The phone never displays `409` or `422` as the message.
+Wire shape: `{ field, code, message, actions[] }`. The phone never displays HTTP codes.
 
-- **409 duplicate SKU** (exists in Woo under any status): inline on SKU. Actions: edit SKU, or open/copy the existing listing. Draft stays on the phone. No in-place update of the other product in POC.
-- **422 stale or invalid field** (category/attribute/tag/price no longer valid): after a submission-time taxonomy refresh, return the field key plus the **current** allowed options. Inline on that field. Draft stays.
+- **409 duplicate SKU**: actions `edit_sku` | `open_existing`. Include Woo id + admin URL when GET-by-sku works; if lookup fails, keep `open_existing` (SKU + “open this SKU in Woo admin”). No in-place update of the other product.
+- **422 stale field**: current cache options after publish-time sync if #14 fired.
+- Draft: phone keeps the form; server slab → `failed` (retryable). No IndexedDB.
+- Module-stale hash is **412**, not 409.
 
-The shared validation module (`GET /api/v1/validation-module`) is the client cache for required/length/charset. Hash check on submit only.
+The shared validation module is `GET /api/v1/validation/module`. Hash check on submit only.

@@ -159,8 +159,8 @@ Payload and publish sequence depth: `docs/CONTENT-WOO.md` (cites this section fo
 - Call 1 auto only if `inference_enabled`; Call 2 never auto-fires (user taps Generate text).
 - Call 1 body: all inventory photos @1024 (not top-down-only). Taxonomy lists sent to Call 1 are **exactly the Woo-synced species / attribute / tag sets**. No hardcoded or invented species.
 - **Confidence 0.7 (default):** ≥ 0.7 → pre-populate species, wood categories, edge, figure, grade, and feat-* from Call 1 (**mutable**). < 0.7 → those fields stay **empty**; user is gated before ready. Mandatory floor: species + ≥1 figure (product also requires ≥1 wood category). Presentation: `docs/UX.md`. Inference never auto-publishes.
-- **Taxonomy cache:** FastAPI manufactures one last-modified anchor; bump only on stored-subset change; client re-pulls if advanced. `test-woo` always resyncs; publish if >1h. No Woo taxonomy timestamp.
-- Call 2 must run on a provider that supports **portable Call 1→Call 2 context** (full history resend default; stateful `previous_response_id` only if probe says so). `test-inference` fails closed if neither path works.
+- **Taxonomy cache:** `taxonomy_last_sync_at` vs `taxonomy_anchor` (bump only on stored-subset hash change, including deletions). Client re-pulls iff the anchor advanced. `test-woo` always syncs; publish if last_sync >1h. No per-nav sync. No Woo taxonomy timestamp.
+- Call 2 portable context: default full resend; never require `previous_response_id`. `test-inference` two-turn probe `stateful|stateless|fail`. Fail blocks **Call 2 enablement only**.
 - LoRA deferred. No numeric/dimension invention by LLM; templates inject deterministic numbers.
 
 Prompt file mechanics: `docs/PROMPTS.md`.

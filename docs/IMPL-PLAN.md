@@ -117,7 +117,7 @@ Deliverables:
 
 - Routers per OPENAPI: slabs (CRUD + upload + poll), photos (serve), pricing-rules,
   settings (AES-GCM + test stubs), taxonomy (cache read/write + manufactured
-  `taxonomy_updated_at` / `cache_anchor`).
+  `taxonomy_anchor` / `taxonomy_last_sync_at`).
 - Optimistic concurrency (`client_rev` / `server_rev`, 409 paths).
 - Status machine only: `draft → calibrated → ready → publishing → published | failed`.
   Job queue only for publish and inference (later). U2Net-on-demand is deferred from POC. Never for measure/crop.

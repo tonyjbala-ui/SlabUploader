@@ -156,8 +156,9 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 - `PUT /api/v1/slabs/{id}` — Update draft fields. Body: partial `SlabCreate` (any subset of editable fields + `client_rev`).
   - Server **stores** client-sent derived fields (`sqft`, `bdft`, widths). It may validate shape and ranges. It must **not** recompute mask, sqft, bdft, or widths as source of truth. Client re-runs TECH-SPEC math and PUTs the new numbers.
   - `409 revision_conflict`.
-  - `409 duplicate_sku` → `{ "error": "duplicate_sku", "sku": "...", "woo_admin_url": "..."? }`. UI maps this to the SKU field (`docs/UX.md`). Never show the code.
-  - `422` stale/invalid field → `{ "error": "stale_field", "field": "species_id", "options": [...] }` after a submission-time taxonomy refresh. UI maps to that field. Draft stays.
+  - `409 duplicate_sku` → `{ "field":"sku", "code":"duplicate_sku", "message":"...", "actions":["edit_sku","open_existing"], "woo_product_id": "...?", "woo_admin_url": "...?" }`. `open_existing` is required even if lookup failed (then omit id/url). UI: `docs/UX.md`. Never show the code.
+  - `422` stale/invalid field → `{ "field":"species_id", "code":"stale_field", "message":"...", "actions":[], "options": [...] }` after a submission-time taxonomy refresh. Draft: phone form + server slab `failed` (retryable).
+  - `412` validation module stale → `{ "code":"validation_module_stale", "module": { "hash":"...", "rules":[] } }`. Not a 409.
 - `DELETE /api/v1/slabs/{id}` → `204`. Soft: only unpublished drafts. Published slabs cannot be deleted from the app.
 
 ### Photo operations
@@ -199,12 +200,13 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
   ```jsonc
   { "categories": [...], "attributes": [{ name, slug, terms: [...] }],
     "tags": [...],
-    "taxonomy_updated_at": "ISO-8601" }
+    "taxonomy_anchor": "ISO-8601",
+    "taxonomy_last_sync_at": "ISO-8601" }
   ```
-  Client re-pulls if `taxonomy_updated_at` is newer than its snapshot. Species/attribute/tag
+  Client re-pulls iff `taxonomy_anchor` advanced. Species/attribute/tag
   lists here are the **only** legal options for UI pickers and Call 1.
-- `POST /api/v1/admin/taxonomy/sync` → `200` `{ "categories": n, "attributes": n, "tags": n, "taxonomy_updated_at": "..." }`.
-  - Pulls from Woo, rebuilds the cache. Bump `taxonomy_updated_at` **only** if a stored-subset row changed. `502 woo_error` on failure; previous cache retained.
+- `POST /api/v1/admin/taxonomy/sync` → `200` `{ "categories": n, "attributes": n, "tags": n, "taxonomy_anchor": "...", "taxonomy_last_sync_at": "..." }`.
+  - Pulls from Woo, rebuilds the cache. Always set `taxonomy_last_sync_at` on success. Bump `taxonomy_anchor` **only** if stored-subset hash changed. `502 woo_error` on failure; previous cache retained.
 
 ### Pricing
 - `GET /api/v1/admin/pricing` → `[PriceRule]`
@@ -222,16 +224,16 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
     `woo_consumer_key` / `woo_consumer_secret`.
   - Secrets re-encrypted server-side. `200` `SettingsView` returned (password
     never echoed).
-- `POST /api/v1/settings/test-woo` → `200` `{ "ok": bool, "detail": "...", "taxonomy_updated_at": "..." }`
+- `POST /api/v1/settings/test-woo` → `200` `{ "ok": bool, "detail": "...", "taxonomy_anchor": "...", "taxonomy_last_sync_at": "..." }`
   - Uses stored username + application password over HTTPS Basic Auth against
     `WOO_BASE_URL` REST v3. Fails closed if credentials missing or URL is not https.
-  - On success, **always** run a taxonomy resync (bump anchor only if rows changed).
-- `POST /api/v1/settings/test-inference` → `200` `{ "ok": bool, "vision_capable": bool, "portable_resend": bool, "stateful_previous_response_id": bool, "detail": "..." }`
-  - Probe whether Call 1→Call 2 can use full-history resend and/or `previous_response_id`.
-  - **Fail closed** (`ok: false`) if neither portable resend nor stateful id works. Call 2 must not run.
-- `GET /api/v1/validation-module` → `200` `{ "hash": "...", "rules": { ... } }`
-  - Shared FastAPI module. Client caches it. Compare `hash` **on submit only**.
-  - Length rules are hard input caps. Field-exit uses the cache locally.
+  - On success, **always** run a taxonomy resync (set last_sync; bump anchor only if hash changed).
+- `POST /api/v1/settings/test-inference` → `200` `{ "ok": bool, "mode": "stateful"|"stateless"|"fail", "vision_capable": bool, "detail": "..." }`
+  - Two-turn probe. Default Call 1→Call 2 path is full resend; never require `previous_response_id`.
+  - `mode=fail` **blocks Call 2 enablement only**. Gate C inference-OFF still works.
+- `GET /api/v1/validation/module` → `200` `{ "hash": "...", "rules": [ ... ] }`
+  - Shared FastAPI module (UI + Call 2). Client caches it. Submit sends `validation_hash`.
+  - Match → validate. Mismatch → **412** + fresh module. SKU `[A-Z0-9-]{3,24}`; titles UTF-8 + Woo maxLength.
 
 ---
 

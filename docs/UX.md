@@ -124,8 +124,8 @@ Shared module on FastAPI (`docs/OPENAPI.md`). Client caches it; hash checked **o
 
 - Blur: local check with cached rules. Required fields block; optional empty is valid; optional with content must pass.
 - Length: hard cap at the Woo limit (cannot type past it).
-- Character set: invalid characters rejected on exit.
-- Submit: full pass + hash check. Mismatch → “Updating rules” → re-validate → retry. No data loss.
+- Character set: SKU `[A-Z0-9-]{3,24}`; title/description UTF-8 within Woo max. Invalid characters rejected on exit. Not “extended ASCII”.
+- Submit: full pass + hash check. Mismatch → “Updating rules” (HTTP 412, never shown) → re-validate → retry. No data loss.
 
 Presentation: errors sit under the field. No top-of-screen dump for field problems.
 
@@ -133,12 +133,12 @@ Presentation: errors sit under the field. No top-of-screen dump for field proble
 
 ## 6. Publish errors (after commit)
 
-Draft stays on the phone.
+The phone keeps the form. The server slab goes `failed` (retryable). No IndexedDB.
 
 **409 duplicate SKU** — inline on SKU:
 
 - “This SKU already exists in the store (any status).”
-- Actions: **Edit SKU** (focus the field) · **Open existing listing** (admin URL if the server returned it; otherwise copy SKU and a one-line “look this SKU up in Woo admin”).
+- Actions: **Edit SKU** (focus the field) · **Open existing listing** (required). Use the admin URL/id when the server returned them; otherwise keep the button and “look this SKU up in Woo admin”.
 - Never show `409` as the message.
 
 **422 stale value** — inline on the field Woo rejected (category, attribute, price, …):

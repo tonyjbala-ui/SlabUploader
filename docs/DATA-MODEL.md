@@ -21,7 +21,7 @@ Draft-only. Deleted on successful publish. WooCommerce is the source of truth fo
 | Column | Type | Notes |
 |---|---|---|
 | `id` | TEXT PK | client-generated UUID |
-| `sku` | TEXT UNIQUE NOT NULL | 3-24 [A-Z0-9-] |
+| `sku` | TEXT UNIQUE NOT NULL | `[A-Z0-9-]{3,24}` printable ASCII subset |
 | `status` | TEXT NOT NULL | draft \| calibrated \| ready \| publishing \| published \| failed |
 | `length_in` | REAL NOT NULL | 1/8" step |
 | `thickness_in` | REAL NOT NULL | 1/8" step |
@@ -185,7 +185,8 @@ Keys (server settings; secrets encrypted at rest):
 - `inference_enabled`, `content_llm_enabled`
 - `brand_voice`, `geo_context`
 - `woo_create_status` ('draft' | 'publish'), default `draft` — Woo product create status key only; safety policy lives in AGENTS.md §5
-- `taxonomy_updated_at` — manufactured ISO timestamp; bump only when a stored-subset taxonomy row changes. No-op sync does not bump. Not Woo's own `date_modified`.
+- `taxonomy_last_sync_at` — UTC ISO; every successful Woo taxonomy pull
+- `taxonomy_anchor` — UTC ISO; bump only when stored-subset hash changes (incl. deletions). No-op sync does not bump. Not Woo `date_modified`.
 - `aspect_ratio` ('3:4'), `output_px` (1600), `output_px_min` (1600), `fill_target` (0.80)
 
 

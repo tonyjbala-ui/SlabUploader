@@ -175,8 +175,9 @@ ready → publishing → published.
 
 Woo REST exposes **no usable last-modified** on categories, attributes, or tags
 (only products carry `date_modified`). The client never talks to Woo. FastAPI is
-the sole freshness source and **manufactures** one anchor timestamp
-(`taxonomy_updated_at` / `cache_anchor`).
+the sole freshness source. It persists two UTC stamps: `taxonomy_last_sync_at`
+(every successful Woo pull) and `taxonomy_anchor` (bumps only when the stored-subset
+hash changes, including deletions).
 
 - Anchor bumps **only** when a row-level change is detected in the **stored
   subset** of cache fields (whatever columns the cache tables actually keep:
@@ -207,18 +208,21 @@ only after the next sync that lands it in the cache.
 
 ## 8. Shared validation module
 
-One FastAPI module is source of truth for field rules (required, length cap, charset, Woo option membership). Client caches `{ rules, hash }`.
+One FastAPI module is source of truth (`GET /api/v1/validation/module` → `{ hash, rules[] }`).
+Two consumers: review UI and Call 2 prompt builder. Client caches the module.
 
-- Field-exit: local check against the cache.
-- Length: hard input cap (cannot type past Woo max).
-- Hash is compared **on submit only**. Mismatch → refresh module → re-validate → retry. Draft stays.
+- SKU charset: `[A-Z0-9-]{3,24}` (printable ASCII subset). Title / short_title / description: UTF-8 within Woo `maxLength`. Not “ASCII-only” and not “extended ASCII”.
+- Field-exit: local check against the cache. Empty optional is valid.
+- Length: `maxLength` is a hard input cap; server still enforces.
+- Submit carries `validation_hash`. Match → validate. Mismatch → HTTP **412** + fresh module; UI “Updating rules”; re-validate; retry. Never show 412. 409 is duplicate SKU only. Woo-shaped 422 is store rejection (#18).
 
 ## 9. Call 1 → Call 2 context
 
 Providers differ. Default portable path: **resend the full Call 1 turn** (prompt + images metadata + assistant JSON) with Call 2. Opt into `previous_response_id` only after probe.
 
-`POST /api/v1/settings/test-inference` fails closed (`ok: false`) if **neither** full-resend nor stateful id works. Do not ship a Call 2 that silently drops Call 1 context.
+`POST /api/v1/settings/test-inference` two-turn probe records `stateful | stateless | fail`.
+**Fail blocks Call 2 enablement only** (Gate C inference-OFF still works). Never require `previous_response_id`. Do not ship a Call 2 that silently drops Call 1 context.
 
-Per-slab thread. Delete stored thread on successful publish or user abandon.
+Per-slab thread on the **server** (client does not hold provider IDs). Best-effort delete on publish / abandon / fail; log and continue.
 
 Presentation of the review screen: `docs/UX.md`.

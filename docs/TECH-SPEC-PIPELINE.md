@@ -230,7 +230,7 @@ Price 12.345 → **12.35**.
 | Portable Call 1→Call 2 context (full resend default) | ARCHITECTURE §9, PROMPTS |
 | Woo payload, publish, 409/422 recovery | CONTENT-WOO, OPENAPI |
 | SQLite tables, status machine | DATA-MODEL |
-| HTTP contract, taxonomy `cache_anchor` | OPENAPI |
+| HTTP contract, taxonomy `taxonomy_anchor` | OPENAPI |
 | Client vs server topology, validation module | ARCHITECTURE |
 | Auto-dimension overlay, figure-weighted price | IMPL-PLAN (v1.5) |
 | Offline capture | non-goal (online-only POC; see AGENTS) |
