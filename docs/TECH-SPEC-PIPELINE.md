@@ -32,9 +32,14 @@ Inference, Woo payload, API, and schema live in other docs.
 - bdft is never rounded up to whole board feet.
 - Pixel→inch scale is an implementation detail. Users never see pixels.
 
-## 3. Background removal
+## 3. Background removal (load-bearing)
 
-The user must see where the cut will land and be able to fix it. Edge quality is the foundation of sqft and bdft.
+Background removal is the **load-bearing phase** of the image pipeline. The mask
+defines the slab's pixel footprint. Length axis, 6" width samples, sqft, and bdft
+all derive from that footprint. A clipped or over-inclusive mask silently shifts
+the bounding rectangle and width samples with no later numeric check to catch it.
+The user's eye on the overlay is the only validator. There is no confidence score
+and no auto-gate on mask quality.
 
 ### 3.1 Auto-detect sheet
 1. Sample a 2–5% strip on all four borders.
@@ -44,14 +49,19 @@ The user must see where the cut will land and be able to fix it. Edge quality is
 5. Else prompt: pick green or black.
 
 ### 3.2 Visual feedback (required)
-- Overlay the mask on the photo (what will be removed vs kept).
-- Show the slab edge clearly — that edge is the measurement boundary.
+- Overlay the mask on the **source photo** (included vs excluded pixels), not only
+  a cropped result.
+- Show the slab edge clearly. That edge is the measurement boundary.
 - User confirms the edge before length / area run.
 
 ### 3.3 Capture knobs (inline, live, persisted)
-Factory values live in code. If the user changes them, the new values persist in localStorage until reset (Settings).
+Factory values live in code. If the user changes them, the new values persist in
+localStorage until reset-to-default.
 
-All four knobs are **on the capture screen next to the overlay**, not in Settings. Changing any knob **immediately re-runs** §3.4 on the current photo and refreshes the overlay on the source image. No apply/save step. No server round trip in POC.
+All four knobs are **on the capture screen next to the overlay**, not behind a
+Settings navigation. Changing any knob **immediately re-runs** §3.4 on the current
+photo and refreshes the overlay on the source image. No apply/save step. No server
+round trip for mask tuning in POC.
 
 1. **Sheet** — auto / green / black.
 2. **Sensitivity** — one slider; tighter vs looser detection (green: HSV range width; black: brightness cutoff).
@@ -61,7 +71,11 @@ All four knobs are **on the capture screen next to the overlay**, not in Setting
 ### 3.4 Algorithms
 - **Green:** chroma-key in HSV. Border flood-fill so only sheet pixels connected to the image edge are removed (protects green-ish grain inside the slab).
 - **Black:** grayscale threshold. Same flood-fill (protects dark grain).
-- **Fallback (POC):** retake. U2Net matting is last resort **post-POC** (one photo in, mask out; sliders still apply). Do not implement in Gate C.
+- **POC path:** client-side only (sheet detect + four knobs). If the edge is still
+  wrong after tuning, **retake**.
+- **Post-POC fallback (deferred, not deleted):** U2Net matting on one photo via
+  FastAPI. Mask returns; knobs still apply on the client. Do not ship the control
+  in Gate C / first listing. Do not remove the contract from architecture.
 - Morphological close, then feather per the setting.
 
 ### 3.5 Edge quality
@@ -212,10 +226,11 @@ Price 12.345 → **12.35**.
 
 | Topic | Doc |
 |---|---|
-| Call 1 / Call 2 prompts, taxonomy mapping | Content / Woo |
-| Woo payload, publish, duplicate SKU | Content / Woo, OpenAPI |
-| SQLite tables, status machine | Data Model |
-| HTTP contract | OpenAPI |
-| Client vs server topology | Architecture |
-| Auto-dimension overlay, figure-weighted price | Impl plan (v1.5) |
+| Call 1 / Call 2 prompts, taxonomy mapping | PROMPTS, CONTENT-WOO |
+| Portable Call 1→Call 2 context (full resend default) | ARCHITECTURE §9, PROMPTS |
+| Woo payload, publish, 409/422 recovery | CONTENT-WOO, OPENAPI |
+| SQLite tables, status machine | DATA-MODEL |
+| HTTP contract, taxonomy `cache_anchor` | OPENAPI |
+| Client vs server topology, validation module | ARCHITECTURE |
+| Auto-dimension overlay, figure-weighted price | IMPL-PLAN (v1.5) |
 | Offline capture | non-goal (online-only POC; see AGENTS) |

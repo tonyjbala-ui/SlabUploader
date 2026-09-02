@@ -173,19 +173,37 @@ ready → publishing → published.
 
 ## 7. Taxonomy cache (manufactured last-modified)
 
-Woo category/tag/attribute `date_modified` is not a reliable client cache key (the store does not bump it for every edit we care about). FastAPI **manufactures** a `taxonomy_updated_at` timestamp:
+Woo REST exposes **no usable last-modified** on categories, attributes, or tags
+(only products carry `date_modified`). The client never talks to Woo. FastAPI is
+the sole freshness source and **manufactures** one anchor timestamp
+(`taxonomy_updated_at` / `cache_anchor`).
 
-- Bump **only** when a stored-subset row actually changes (species/wood-category leaves, five attributes + terms, `fig-*`/`feat-*` tags).
-- A no-op sync (same rows) **does not** bump.
-- Client re-pulls if the returned anchor is newer than its snapshot.
+- Anchor bumps **only** when a row-level change is detected in the **stored
+  subset** of cache fields (whatever columns the cache tables actually keep:
+  species/wood-category leaves, five attributes + terms, `fig-*`/`feat-*` tags).
+  Scope is schema-driven: adding a cache column later automatically includes it.
+- Spelling/name edits, additions, and deletions all bump. Diff must catch missing
+  rows (deletions), not only changed rows.
+- A no-op sync (stored subset unchanged) **does not** bump, so the client does
+  not churn.
+- Client reads the anchor. If it advanced past the client's last value, re-pull
+  the **full** taxonomy cache. One timestamp governs categories, attributes, and
+  tags together.
+- Do not invent a Woo-side taxonomy timestamp or a per-table anchor.
 
 **Triggers**
 
-1. `POST /api/v1/settings/test-woo` always runs a taxonomy resync after a successful connection test.
-2. Publish path: opportunistic resync if the last successful bump is older than **1 hour**.
-3. Optional: app launch and a Settings “Refresh taxonomy” control.
+1. `POST /api/v1/settings/test-woo` **always** resyncs taxonomy after a successful
+   connection test (unlocks the species list).
+2. Publish / product submit: opportunistic resync if the last successful sync is
+   older than **1 hour**; bump anchor only if the stored subset changed.
+3. Optional: app launch check (sync only if stale) and a Settings “Refresh
+   taxonomy” control. Not required for POC.
+4. Do **not** sync on every screen navigation.
 
-Species pickers and Call 1 option lists are **exactly** this cached set. No hardcoded mill list.
+Species pickers and Call 1 option lists are **exactly** this cached set. No
+hardcoded, invented, or fallback species list. A new Woo species is selectable
+only after the next sync that lands it in the cache.
 
 ## 8. Shared validation module
 
