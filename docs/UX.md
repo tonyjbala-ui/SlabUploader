@@ -1,68 +1,72 @@
 # Phone flow
 
-What the mill owner does. Math is in `docs/TECH-SPEC-PIPELINE.md`. Field names are in `docs/DATA-MODEL.md`.
+What the mill owner does on the phone. Pipeline math is in `docs/TECH-SPEC-PIPELINE.md`. Field names are in `docs/DATA-MODEL.md`.
 
-Typed values always win. If the model is unsure, leave the guess out.
+You type it, we keep it. If the model is unsure, that guess stays off the form.
 
 ## Happy path
 
 ### First launch
 
-One short card: green or black sheet, shoot from above, tape in the shot so you can type length, 1–5 photos. Dismiss. "Don't show again" sticks until Settings.
+One short card: green or black sheet, shoot from above, tape in the shot so you can type length, 1 to 5 photos. Dismiss it. "Don't show again" stays off until you turn it back on in Settings.
 
 The app does not read the tape.
 
 ### Capture
 
-Photo on screen. Cut drawn on the original (kept vs dropped). Four knobs next to it: sheet (auto / green / black), sensitivity, edge offset, feather. Move a knob, the overlay updates on this photo. No save. No server round trip. Knobs remember until you reset them in Settings.
+The photo stays on screen. The cut is drawn on that original, kept vs dropped.
 
-Look at the overlay. If the cut sits on the wood, confirm. Then the length axis. Rotate until the long grain looks right, confirm. Type length, thickness, SKU. App computes square feet, board feet, and the 6" widths and builds the 3:4 listing PNG.
+Four knobs sit next to it: sheet (auto, green, black), sensitivity, edge offset, feather. Move a knob and the overlay updates on this photo. Nothing saves. Nothing hits the server. Knobs stick until you reset them in Settings.
+
+Look at the overlay. If the cut sits on the wood, confirm. Then the length axis. Rotate until the long grain looks right, confirm.
+
+Type length, thickness, and SKU. The app computes square feet, board feet, and the 6" widths, then builds the 3:4 listing PNG.
 
 Then review.
 
 ### Review
 
-Vision on and ≥ 0.7: it may fill species, wood category, edge, figure, grade, and feature tags. You can change any of them.
+If vision is on and confidence is at least 0.7, it may fill species, wood category, edge, figure, grade, and feature tags. Change any of them.
 
-Price: species $/bf × board feet if that rate exists, else blank. Override anytime.
+Price is species $/bf times board feet when that rate exists. Otherwise blank. Override anytime.
 
-Title and description: type them or tap Generate text. Generate text never runs by itself. Templates can write a name if you leave title blank.
+Type title and description, or tap Generate text. Generate text never runs on its own. Templates can write a name if title is still blank.
 
-Lists (species, wood category, figure, and the rest) are whatever we last pulled from the store.
+Species, wood category, figure, and the rest of the lists are the last pull from the store.
 
 ### Publish
 
-Tap publish. Practice SKUs `SLAB-UAT-*` land as drafts. A real SKU follows Settings (default draft).
+Tap publish. SKUs that start with `SLAB-UAT-` land as drafts. Any other SKU follows Settings. Settings default is draft.
 
 ### Settings
 
-Store URL is text from deploy, not an input. WordPress username and application password (password never comes back on load). Vision endpoint, key, model, on/off. Species $/bf table. Draft vs published for new listings. Reset knobs. Refresh store lists is optional; testing the connection always refreshes them.
+Store URL is deploy text, not an input. WordPress username and application password. The password never comes back on load. Vision endpoint, key, model, on/off. Species $/bf table. Draft vs published for new listings. Reset knobs. Refresh store lists is optional. Testing the connection always refreshes them.
 
-## When it isn't that clean
+## Usual failures
 
-**Overlay looks wrong.** Turn knobs. If it still looks wrong, retake. No "Try harder" button in this first listing.
+**Overlay looks wrong.** Turn knobs. If it still looks wrong, retake. This first listing has no "Try harder" button.
 
 **Sheet auto missed.** Set Sheet to green or black. Same knobs.
 
 **Shot is skewed.** Rotate the length axis. If that cannot save it, retake.
 
-**PNG too small after crop.** Retake closer. Rules in the tech spec. No fake upscale.
+**PNG too small after crop.** Retake closer. The size floor is in the tech spec. No fake upscale.
 
-**Vision off or under 0.7.** Species, wood category, edge, figure, grade, and feature tags start empty. Pick them. Moisture still starts kiln-dried. Thickness band still comes from the thickness you typed. SKU and measures are already there.
+**Vision off, or confidence under 0.7.** Species, wood category, edge, figure, grade, and feature tags start empty. Pick them. Moisture still starts kiln-dried. Thickness band still comes from the thickness you typed. SKU and measures are already there.
 
-**A required field is empty.** Line under that control. Continue stays off until the listing is complete:
+**A required field is empty.** Line under that control. You cannot continue until this set is filled:
 
 SKU, length, thickness, price, one species, at least one wood category, edge type, at least one figure, grade, thickness band, moisture, at least one figure tag, at least one listing photo. Feature tags can stay empty.
 
-**SKU already in the store (any status).** Under SKU: "This SKU already exists in the store (any status)." Edit SKU, or open the existing listing. Do not print 409.
+**SKU already in the store, any status.** Under SKU: "This SKU already exists in the store (any status)." Edit the SKU, or open the existing listing. Do not print 409.
 
-**Store no longer accepts a value.** Under that field: "This value is no longer valid. Pick from the current list." Show current options. Do not print 422.
+**Store no longer accepts a value.** Under that field: "This value is no longer valid. Pick from the current list." Show the current options. Do not print 422.
 
-**Store unreachable.** "Couldn't reach the store. Try again." Form stays.
+**Store unreachable.** "Couldn't reach the store. Try again." The form stays.
 
-**Rules copy went stale on submit.** "Updating rules," refetch, check again, retry. Form stays.
+**Rules copy went stale on submit.** "Updating rules." Refetch, check again, retry. The form stays.
 
-Leaving a field: empty optional is fine; typed junk is not. SKU is A–Z, 0–9, hyphen, 3–24 characters. You cannot type past the store's max length.
+Leaving a field: empty optional is fine. Typed junk is not. SKU is A-Z, 0-9, hyphen, 3-24 characters. You cannot type past the store's max length.
 
 ## Out of scope
 
