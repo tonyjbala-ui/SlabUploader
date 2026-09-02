@@ -1,73 +1,146 @@
 # Phone flow
 
-What the mill owner does on the phone. Pipeline math is in `docs/TECH-SPEC-PIPELINE.md`. Field names are in `docs/DATA-MODEL.md`.
+What the mill owner does on the phone, from first photo to a store listing.
 
-You type it, we keep it. If the model is unsure, that guess stays off the form.
+Pipeline math lives in `docs/TECH-SPEC-PIPELINE.md`. Field names and the ready set live in `docs/DATA-MODEL.md`. Store payload and create steps live in `docs/CONTENT-WOO.md`.
 
-## Happy path
+You type a value, the app keeps it. Vision only fills when it is sure enough; a weak guess stays off the form.
 
-### First launch
+---
 
-One short card: green or black sheet, shoot from above, tape in the shot so you can type length, 1 to 5 photos. Dismiss it. "Don't show again" stays off until you turn it back on in Settings.
+## Main path
 
-The app does not read the tape.
+### Settings once
+
+Store URL is deploy text from `WOO_BASE_URL`. It is not an input. Settings shows it read-only so you always know which store this phone is talking to.
+
+Enter the WordPress username and application password for the low-privilege store user. The password is write-only; it never comes back on load. Rotate by revoking it in WordPress Users → Profile and typing a new one here.
+
+Optional on the same screen: species $/bdft table, vision on/off plus endpoint and key, draft vs publish for new listings (default draft), reset capture knobs to factory, optional refresh of store lists. **Test connection** always pulls fresh species, attributes, and tags from the store.
+
+### First run on the floor
+
+One short card, then dismiss. Green or black sheet under the slab. Shoot from above with the lens parallel to the face. Put a tape measure in the shot so you can **type** the length. The app does not read the tape and does not run a ruler detector.
+
+"Don't show again" stays off until you turn the card back on in Settings.
 
 ### Capture
 
-The photo stays on screen. The cut is drawn on that original, kept vs dropped.
+Take 1 to 5 inventory photos.
 
-Four knobs sit next to it: sheet (auto, green, black), sensitivity, edge offset, feather. Move a knob and the overlay updates on this photo. Nothing saves. Nothing hits the server. Knobs stick until you reset them in Settings.
+The source photo stays on screen. The mask is drawn on that original: kept wood versus dropped sheet.
 
-Look at the overlay. If the cut sits on the wood, confirm. Then the length axis. Rotate until the long grain looks right, confirm.
+Four knobs sit next to the overlay, not in Settings:
 
-Type length, thickness, and SKU. The app computes square feet, board feet, and the 6" widths, then builds the 3:4 listing PNG.
+1. Sheet — auto, green, or black
+2. Sensitivity
+3. Edge offset
+4. Feather
 
-Then review.
+Move a knob and background removal re-runs on this photo. The overlay refreshes immediately. Nothing saves to the server for mask tuning. Knobs stick in local storage until you reset them.
 
-### Review
+Your eye is the check. If the cut sits on the wood edge, confirm. If it clips grain or still holds sheet after you tune, retake the photo. This POC has no server "Try harder" control.
 
-If vision is on and confidence is at least 0.7, it may fill species, wood category, edge, figure, grade, and feature tags. Change any of them.
+### Length axis
 
-Price is species $/bf times board feet when that rate exists. Otherwise blank. Override anytime.
+Bounding rectangle and length axis draw on the confirmed mask. Width sample lines sit every 6 inches along that axis. Rotate until the axis matches the slab's long grain, then confirm. On a nearly square piece, you pick which side is length.
 
-Type title and description, or tap Generate text. Generate text never runs on its own. Templates can write a name if title is still blank.
+### Type length, thickness, SKU
 
-Species, wood category, figure, and the rest of the lists are the last pull from the store.
+Manual values win. The phone computes square feet, board feet (`bdft = sqft × thickness_in`, no `/12`), and width min / max / avg from the mask and your length.
+
+It builds 3:4 transparent PNG inventory images at 80% fill on the extremes. After that crop, if the source does not have enough pixels for a shorter side of 1600 px, that photo is not publishable until you retake it. No fake upscale. The floor and the math are in `docs/TECH-SPEC-PIPELINE.md` (constants and TV-7), not a banner painted on the camera.
+
+### Draft upload (calibrated)
+
+When mask, axis, length, thickness, and SKU are set and the numbers and PNGs are ready, the phone uploads originals + processed PNGs + length / thickness / SKU / sqft / bdft / widths. App status becomes **calibrated**.
+
+### Review (store fields)
+
+Everything the listing needs lands here. Empty required controls show an inline empty state as you work, not only at submit.
+
+**Always on the form from capture / defaults**
+
+- Inventory photos as processed transparent PNGs (at least one)
+- SKU, length, thickness
+- Computed sqft, bdft, width min / max / avg
+- Thickness store band from typed thickness, rounded **up** into the synced Woo thickness range
+- Moisture defaults to **kiln-dried**. Vision does not set moisture. Change it if the slab is not KD.
+- Price: species $/bdft × bdft when a rate exists, else blank. Override anytime. No rule still allows a typed price.
+
+**Species and store taxonomy**
+
+Pickers and any vision lists are exactly the last pull from the store. No hardcoded species list.
+
+If vision is on and confidence is at least 0.7, it may pre-fill species, wood categories, edge type, figure, grade, and feature (`feat-*`) tags. Every pre-fill is editable. Typed values win.
+
+If vision is off, or confidence is under 0.7, those fields start empty. Fill them by hand. A low-confidence guess is never shown as a default.
+
+**Required before the slab is ready to list**
+
+- Exactly one species
+- At least one wood category
+- One edge type
+- At least one figure term
+- At least one `fig-*` tag
+- At least one grade
+- Thickness band (from the round-up above)
+- Moisture (kiln-dried unless you changed it)
+- Price
+- SKU, length, thickness, client sqft / bdft / widths, at least one inventory PNG
+
+Feature (`feat-*`) tags are optional (zero or more).
+
+Species plus one figure is not enough. Empty vision fields are not the full submit list.
+
+### Title, short title, description
+
+Type them, or tap **Generate text**. Generate text never runs on its own. It is off unless content generation is enabled in Settings. If the text service is down, the button is disabled; templates still work and publish is not blocked.
+
+If title, short title, or description are still blank at publish, templates fill them from measured facts (species, lengths, widths, thickness, bdft). The model does not invent dimensions.
 
 ### Publish
 
-Tap publish. SKUs that start with `SLAB-UAT-` land as drafts. Any other SKU follows Settings. Settings default is draft.
+When the ready set above is complete, tap publish. App status moves through **publishing**.
 
-### Settings
+Create status comes from Settings (`draft` or `publish`, default `draft`). SKUs that match `SLAB-UAT-*` always create as Woo **draft**, even when Settings say publish. Practice listings stay draft so customers do not see them.
 
-Store URL is deploy text, not an input. WordPress username and application password. The password never comes back on load. Vision endpoint, key, model, on/off. Species $/bf table. Draft vs published for new listings. Reset knobs. Refresh store lists is optional. Testing the connection always refreshes them.
+On success the server deletes originals and processed images. A slab marked published in the app means the store create succeeded. That is not the same word as WooCommerce "publish."
+
+---
+
+## Practice path (UAT)
+
+Same capture and review as production. Use a `SLAB-UAT-*` SKU. The listing is forced to Woo draft regardless of the draft/publish setting. Change the SKU when you are ready for a real listing.
+
+---
 
 ## Usual failures
 
-**Overlay looks wrong.** Turn knobs. If it still looks wrong, retake. This first listing has no "Try harder" button.
+**Mask clips wood or still holds sheet.** Turn the four knobs. Confirm by eye. If it is still wrong, retake. Bad edges silently shift square feet and widths; there is no later numeric score that catches a bad cut.
 
-**Sheet auto missed.** Set Sheet to green or black. Same knobs.
+**Axis skewed or wrong length side.** Rotate the axis, or retake.
 
-**Shot is skewed.** Rotate the length axis. If that cannot save it, retake.
+**Source too small after the 3:4 / 80% crop.** Warn and retake that photo. See `docs/TECH-SPEC-PIPELINE.md` TV-7. No invented pixels.
 
-**PNG too small after crop.** Retake closer. The size floor is in the tech spec. No fake upscale.
+**Required store field still empty.** Inline empty state on that control. You cannot publish until the full ready set in Main path is filled.
 
-**Vision off, or confidence under 0.7.** Species, wood category, edge, figure, grade, and feature tags start empty. Pick them. Moisture still starts kiln-dried. Thickness band still comes from the thickness you typed. SKU and measures are already there.
+**SKU already exists in the store under any status** (draft, private, publish, and the rest). Message sits on the SKU field: it already exists in the store (any status). Actions: edit the SKU, or open the existing listing when a link is available. This version does not edit the other product in place. Do not show a raw status code.
 
-**A required field is empty.** Line under that control. You cannot continue until this set is filled:
+**Category, attribute, tag, or price no longer valid after a list refresh.** Message on that field: the value is no longer valid; pick from the current list. Current options come with the error. Draft stays on the phone.
 
-SKU, length, thickness, price, one species, at least one wood category, edge type, at least one figure, grade, thickness band, moisture, at least one figure tag, at least one listing photo. Feature tags can stay empty.
+**Rules copy on the phone went stale at submit.** Brief "Updating rules." The phone refetches the shared rules, checks again, and retries. That is not a duplicate-SKU conflict. Do not show a raw status code.
 
-**SKU already in the store, any status.** Under SKU: "This SKU already exists in the store (any status)." Edit the SKU, or open the existing listing. Do not print 409.
+**Store unreachable, auth failure, or other hard Woo failure.** Plain failure message. Slab can move to failed with detail. Draft and photos stay so you can retry. No stack traces on the phone.
 
-**Store no longer accepts a value.** Under that field: "This value is no longer valid. Pick from the current list." Show the current options. Do not print 422.
+**Vision off or under 0.7.** Taxonomy fields that vision would have filled start empty. Fill the required set by hand. Moisture still starts kiln-dried. Thickness band still comes from the thickness you typed. Inference never blocks publish and never publishes on its own.
 
-**Store unreachable.** "Couldn't reach the store. Try again." The form stays.
+**Generate text unavailable.** Button disabled. Type copy or let templates write at publish.
 
-**Rules copy went stale on submit.** "Updating rules." Refetch, check again, retry. The form stays.
+Leaving a field: empty optional is fine; typed junk is not. SKU is `A-Z`, `0-9`, and hyphen, length 3–24. Title, short title, and description cannot type past the store max length.
 
-Leaving a field: empty optional is fine. Typed junk is not. SKU is A-Z, 0-9, hyphen, 3-24 characters. You cannot type past the store's max length.
+---
 
-## Out of scope
+## Out of scope for this POC UI
 
-Brand polish. Server matting. A slider for 0.7. Airplane mode. Copy on the photo about mask quality.
+Brand polish and marketing chrome. Server U2Net "Try harder" on capture (kept in architecture for later; not a control here). A user slider for the 0.7 vision threshold. Offline / airplane capture. Any image-quality classifier or score. Strings painted on the live photo about lighting, steadiness, mask confidence, or a 1600 px camera requirement.
