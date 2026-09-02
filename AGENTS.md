@@ -13,7 +13,7 @@ When docs disagree, use this order:
 1. **`docs/TECH-SPEC-PIPELINE.md`** — deterministic math, image prep, constants, test vectors
 2. **`docs/ARCHITECTURE.md`** — hybrid topology, what-runs-where, secrets why, status machine
 3. This **`AGENTS.md`** — hard rules for agents (verbatim locks below)
-4. **`docs/DATA-MODEL.md`**, **`docs/OPENAPI.md`**, **`docs/CONTENT-WOO.md`**, **`docs/PROMPTS.md`**, **`docs/DEPLOYMENT.md`**
+4. **`docs/DATA-MODEL.md`**, **`docs/OPENAPI.md`**, **`docs/CONTENT-WOO.md`**, **`docs/PROMPTS.md`**, **`docs/DEPLOYMENT.md`**, **`docs/UX.md`** (presentation; functional gates stay in this file)
 5. **`docs/IMPL-PLAN.md`** — hybrid-aligned Phases 0–6. Phase 2 is a deferred stub only (offline PWA / OCR / ruler). Do not implement deferred stubs or any server happy-path measure/crop as SoT.
 6. **`README.md`** — orientation only
 7. **`docs/archive/PRD-2026-08.txt`** — frozen archive only. Not a source for new work.
@@ -32,7 +32,7 @@ Archived PRD lines that conflict with the files above are non-authoritative (see
 
 ### Open doc defects
 
-None known after the 2026-09-01 docs refactor on `docs/refactor-v2`. If a greppable DoD item fails, list it here before deleting reconciliation notes.
+POC issue wave (docs on this branch): Application Passwords (#5), Call 1 confidence gate (#9), `WOO_BASE_URL` compose-only (#11), Call 1 prefill (#8), synced-species-only (#12), inline mask knobs (#15), taxonomy cache anchor (#14), Call1→Call2 portable context (#2), shared validation (#17), 409/422 recovery (#18), UX spec (#10 → `docs/UX.md`).
 
 ---
 
@@ -64,7 +64,7 @@ Docs refactor stack on `docs/refactor-v2` (2026-09-01) applies OPENAPI store-onl
 **Client (SvelteKit) owns the happy path:**
 
 - Capture 1–5 photos
-- Sheet detect + chroma-key / black threshold + sliders (sensitivity, edge offset, feather)
+- Sheet detect + chroma-key / black threshold + **four knobs inline on capture** (sheet, sensitivity, edge offset, feather) with **live re-run** and mask overlay on the source photo
 - Mask overlay + **user confirm** before measurement
 - Length axis overlay (rotate / confirm)
 - sqft, bdft, 6" width samples
@@ -74,7 +74,7 @@ Docs refactor stack on `docs/refactor-v2` (2026-09-01) applies OPENAPI store-onl
 **Server (FastAPI) owns:**
 
 - Store drafts / settings / taxonomy cache
-- **U2Net on demand only** (“Try harder” / coverage failure) — one photo in, mask out; sliders still apply on client
+- **U2Net “Try harder”** — **deferred from POC**, not deleted. Architecture keeps the one-photo server path for awkward backgrounds post-POC. POC mask tuning is **client-side only** (sheet + four knobs, live re-run). Do not implement U2Net in Gate C / first listing.
 - WooCommerce (taxonomy sync, SKU check, create product) — browser never calls Woo
 - Inference **proxy** (Call 1 / Call 2) — keys never in browser
 - Prompt files (server text files, read fresh)
@@ -94,6 +94,7 @@ Depth: `docs/ARCHITECTURE.md`.
 | Ruler detection / OpenCV on client for scale | Manual length; scale = longest_axis_px / L |
 | Server-side happy-path pipeline | No server chroma-key / crop / bdft math as SoT |
 | Fake upscale / inventing pixels | Warn + retake if < 1600 after crop |
+| U2Net “Try harder” server mask | Deferred from POC (keep in architecture; do not delete) |
 | LoRA / fine-tune | Deferred |
 | Figure-/category-weighted pricing | v1.5 |
 | Auto-dimension overlay | v1.5 |
@@ -122,14 +123,12 @@ Depth: `docs/TECH-SPEC-PIPELINE.md`.
 **Never in browser storage / JS bundles:**
 
 - Woo WordPress username + application password (not consumer keys)
-- Inference base URL + API key
+- Inference API key (treat inference URL as sensitive)
 - AES master key (`SLAB_AES_KEY` env only; never in DB or repo)
 
-**Server:** AES-GCM at rest in SQLite for Woo + inference secrets. Settings UI
-POSTs to FastAPI; server encrypts. All Woo and inference calls are server-side.
-Woo auth is a dedicated low-privilege WP user's application password over HTTPS
-Basic Auth to `/wp-json/wc/v3/`. Do not implement WooCommerce consumer keys
-(`ck_`/`cs_`) or the Woo → Settings → Advanced → REST API key UI.
+**`WOO_BASE_URL`:** compose / host `.env` only (`https://` required). Settings shows it **read-only**. Not a SQLite settings row. Not user-editable. FastAPI rejects `http://` at startup. Do not reintroduce an editable store URL.
+
+**Server:** AES-GCM at rest in SQLite for Woo Application Password + inference secrets. Settings UI POSTs username + application password to FastAPI; server encrypts. All Woo and inference calls are server-side. Dedicated low-privilege WP user (product create/edit + media). Rotate by revoking the application password in WP Users → Profile and re-entering in Settings. Do not implement WooCommerce consumer keys (`ck_`/`cs_`) or the Woo → Settings → Advanced → REST API key UI.
 
 **Browser may persist (non-secret):** sheet mode, sensitivity, edge offset, feather (localStorage OK; reset-to-default required).
 
@@ -139,12 +138,12 @@ Why/flow: `docs/ARCHITECTURE.md` §5. Ciphertext key inventory: `docs/DATA-MODEL
 
 ## 5. Woo UAT and create status (Ty locked 2026-08-31)
 
-- Store: **PROD** `www.whidbeywoodstore.com`
+- Store URL: **`WOO_BASE_URL`** from Docker Compose (`https://` only). Intended UAT/POC store is Whidbey Wood Store production; the compose value is the SoT, not a Settings field.
 - Mid-phase UAT creates: Woo status **draft**, SKU prefix **`SLAB-UAT-*`**
 - Settings field **`woo_create_status`**: **`draft | publish`**, default **`draft`**
 - Hard rule: if SKU matches `SLAB-UAT-*`, force **Woo draft** even if Settings say publish
 - Final POC success: one real (non-UAT) SKU → **Woo publish** only after Ty review
-- Duplicate SKU → stop, surface error; no edit-same-SKU in MVP
+- Duplicate SKU → stop; UI maps **409** to the SKU field (edit SKU or open existing). No edit-in-place of the other listing in MVP
 - After successful publish: purge originals + processed images on server
 - Do **not** conflate with slab lifecycle status (below)
 
@@ -158,7 +157,9 @@ Payload and publish sequence depth: `docs/CONTENT-WOO.md` (cites this section fo
 - **Gate C** claimable path: inference **OFF**; manual taxonomy + deterministic numbers + Woo draft path.
 - **Call 1 (vision) / Call 2 (text) only after Gate C is green, still inside overall POC** before “done” — not post-POC.
 - Call 1 auto only if `inference_enabled`; Call 2 never auto-fires (user taps Generate text).
-- Call 1 body: all inventory photos @1024 (not top-down-only). Confidence threshold 0.7 (configurable) lives in IMPL Phase 5 / PROMPTS.
+- Call 1 body: all inventory photos @1024 (not top-down-only). Taxonomy lists sent to Call 1 are **exactly the Woo-synced species / attribute / tag sets**. No hardcoded or invented species.
+- **Confidence 0.7 (default):** ≥ 0.7 → pre-populate species, wood categories, edge, figure, grade, and feat-* from Call 1 (**mutable**). &lt; 0.7 → those fields stay **empty**; user is gated before ready. Mandatory: exactly one species, ≥1 wood category, ≥1 figure. Presentation (inline nudges): `docs/UX.md`. Inference never auto-publishes.
+- Call 2 must run on a provider that supports **portable Call 1→Call 2 context** (full history resend default; stateful `previous_response_id` only if probe says so). `test-inference` fails closed if neither path works.
 - LoRA deferred. No numeric/dimension invention by LLM; templates inject deterministic numbers.
 
 Prompt file mechanics: `docs/PROMPTS.md`.
@@ -170,8 +171,8 @@ Prompt file mechanics: `docs/PROMPTS.md`.
 `draft → calibrated → ready → publishing → published` (or `failed` with detail).
 
 - **calibrated:** mask + axis confirmed; length/thickness/SKU entered; client computed sqft/bdft/widths; draft uploaded.
-- **ready:** mandatory fields filled (manual and/or Call 1); inference optional.
-- Inference does not gate publish.
+- **ready:** mandatory fields filled (exactly one species, ≥1 wood category, ≥1 figure, plus remaining required listing fields). Values from Call 1 only when confidence ≥ 0.7, else manual. Inference optional.
+- Inference does not gate publish. Below-threshold Call 1 does not prefill; empty mandatory fields block ready (see UX spec).
 - Never confuse slab `draft` with **Woo draft** (`woo_create_status`).
 
 ---
@@ -192,5 +193,6 @@ Prompt file mechanics: `docs/PROMPTS.md`.
 - Target: inventoried Docker host. Docker Compose (`frontend` + `fastapi`) + Caddy → `https://${APP_HOSTNAME}` (LAN/Tailscale).
 - Fill `deploy/INVENTORY.md` before binding ports or merging Caddy (co-resident apps can collide; bolt.diy is one example).
 - Health: `GET https://${APP_HOSTNAME}/api/health`.
+- `WOO_BASE_URL` in compose (HTTPS). Settings displays it read-only.
 - Inference is a remote configurable endpoint, not on the app host by default.
 - Historical lab IP/hostname examples in older notes are non-normative.

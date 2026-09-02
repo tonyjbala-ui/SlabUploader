@@ -60,7 +60,7 @@ and the final stored content.
 ## 2. WooCommerce integration (FR24–28)
 
 ### 2.1 Auth & client
-- REST v3 surface unchanged: `GET/POST/PATCH/DELETE {woo_base_url}/wp-json/wc/v3/…`
+- REST v3 surface unchanged: `GET/POST/PATCH/DELETE {WOO_BASE_URL}/wp-json/wc/v3/…`
 - Auth is **WordPress Application Passwords**, not WooCommerce consumer keys
   (`ck_`/`cs_`) and not the user's login password.
 - Create a **dedicated low-privilege WordPress user** (shop manager, or a custom
@@ -76,7 +76,8 @@ and the final stored content.
 - Rotation: revoke the application password in the WP user profile, enter a new
   one in Settings UI, then `POST /api/v1/settings/test-woo`.
 - Client: `httpx` with timeouts (connect 10s, read 60s for image-heavy create).
-- `woo_base_url` default: `https://www.whidbeywoodstore.com`.
+- Store URL is **`WOO_BASE_URL`** from Docker Compose / host `.env` (HTTPS only).
+  FastAPI refuses `http://` at startup. Not a Settings field; UI shows it read-only.
 
 ### 2.2 Taxonomy sync (FR25)
 `POST /api/admin/taxonomy/sync` pulls, in order:
@@ -86,19 +87,33 @@ and the final stored content.
 Rebuilds the cache table (delete + insert, single transaction). Returns counts.
 Failure → `502 woo_error`; previous cache retained (never delete-then-fail).
 
-### 2.3 Auto-assign taxonomy (FR26)
-- **Categories**: species leaf category (1 required) plus wood-category leaf ids (1+).
-  Match by name against the synced Woo category cache (case-insensitive, trimmed).
-  No match → user override in review, or empty (Woo required-field validation surfaces it).
-- **Tags**: `fig-*` only for figure tags (1+ required) and `feat-*` only for feature tags
-  (0+). Call 1 free-text observations (character / inclusions / voids / checks) map to
-  existing Woo `feat-*` tags. Do not invent generic character or species product tags.
-  WooCommerce is authoritative for tag definitions.
+### 2.3 Taxonomy assignment (FR26)
+
+**Primary source when inference is on and confidence ≥ threshold (default 0.7):**
+Call 1 vision results pre-fill the review screen for species, wood categories,
+edge type, figure, grade, and mapped `fig-*` / `feat-*` tags (character /
+inclusions / voids / checks → existing `feat-*`). All pre-filled values are
+mutable. The user confirms or overrides; manual entry always wins.
+
+**Below threshold:** those fields stay empty. The review screen gates continue
+until the user manually selects at least **species** and **one figure attribute**
+(and the rest of the ready mandatory set). Do not auto-fill below-threshold
+guesses. Full rules: AGENTS §6.
+
+**Deterministic name-matching** resolves Call 1 names (or manual picks) to synced
+Woo IDs case-insensitive, trimmed. No match → empty; user picks in review. Woo
+required-field validation still surfaces gaps at publish.
+
+Field rules:
+- **Categories**: species leaf (1 required) plus wood-category leaf ids (1+).
+- **Tags**: `fig-*` (1+ required) and `feat-*` (0+). Do not invent generic
+  character or species product tags. Woo is authoritative for tag definitions.
 - **Attributes**: the five locked Woo attributes only — Edge Type, Figure, Grade,
-  Thickness, Moisture — using term ids from the cache. Do not publish species, character,
-  length, or free-text thickness as product attributes. Missing attributes are skipped,
-  not created (v1: no attribute creation).
-- Every assignment is overridable in the review screen (FR26).
+  Thickness, Moisture — using term ids from the cache. Do not publish species,
+  character, length, or free-text thickness as product attributes. Missing
+  attributes are skipped, not created (v1: no attribute creation).
+
+Call 1 is assist-only and never gates publish. Inference OFF → full manual path.
 
 ### 2.4 Product create payload (FR27)
 `POST /products` — body (only non-null fields sent):

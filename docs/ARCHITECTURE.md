@@ -123,6 +123,7 @@ flowchart TB
 2. Inference endpoint base URL + API key. Stored encrypted. Server proxies all
    inference calls.
 3. AES master key. Env var on server (`SLAB_AES_KEY`), never in the DB.
+4. `WOO_BASE_URL` env (compose). HTTPS only. Not user-editable; Settings displays it read-only.
 
 **Browser-side (no secrets):**
 1. User preferences: sheet mode, sensitivity, edge offset, feather. Persisted in localStorage, reset-to-default available.
@@ -130,10 +131,11 @@ flowchart TB
 3. Taxonomy snapshot (categories, attributes, tags). Read from server. No auth needed.
 
 **Flow:**
-1. Operator creates a low-privilege WP user on the store (HTTPS required for
-   Application Passwords UI). Generates an application password under
-   Users → Profile.
-2. User enters that username + application password in Settings UI on the phone.
+1. Deploy sets `WOO_BASE_URL` (`https://`) in compose. Operator creates a
+   low-privilege WP user on that store (HTTPS required for Application
+   Passwords UI). Generates an application password under Users → Profile.
+2. User enters that username + application password in Settings UI
+   (store URL shown read-only from env).
 3. Browser POSTs them to `/api/v1/settings` on FastAPI. Server encrypts with
    AES-GCM and stores ciphertext only.
 4. Server syncs taxonomy from Woo, caches in SQLite.
@@ -153,9 +155,17 @@ any → failed (with error)
 
 1. **draft** — user took photos, no mask confirmed yet.
 2. **calibrated** — user confirmed the BG edge, confirmed length axis, entered length/thickness/SKU. Client computed sqft/bdft/widths. Draft uploaded to server.
-3. **ready** — all mandatory fields populated (species, wood category, edge type, figure, grade, thickness, price, title/desc/short desc, at least one photo). Values can come from Call 1, manual entry, or a mix. Inference is optional; the user can fill everything by hand and go straight to ready.
+3. **ready** — all mandatory fields populated (species, wood category, edge type,
+   figure, grade, thickness, price, title/desc/short desc, at least one photo).
+   Values can come from Call 1 (≥ threshold pre-fill the user kept), manual
+   entry, or a mix. **Review gate:** if Call 1 returned below-threshold for a
+   field, that field stays empty until the user fills it. At minimum **species**
+   and **≥1 figure attribute** must be set before ready. Inference is optional;
+   with inference OFF the user fills everything by hand.
 4. **publishing** — Woo create in flight. Poll for result.
 5. **published** — Woo product created, woo_product_id stored. Images purged.
 6. **failed** — pipeline, inference, or publish error. Error detail stored. Retry available.
 
-Call 1 and Call 2 are assist-only. They do not gate the flow. If the user skips inference, the path is: calibrated → ready → publishing → published.
+Call 1 and Call 2 are assist-only. They do not gate publish. Low-confidence Call 1
+results do not auto-fill. If the user skips inference, the path is: calibrated →
+ready → publishing → published.

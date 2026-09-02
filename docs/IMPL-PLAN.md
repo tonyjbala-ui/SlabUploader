@@ -161,8 +161,10 @@ Deliverables:
 - Show client-processed transparent PNGs (and originals while retained). No server
   re-crop UI as SoT.
 - Inference UI (only meaningful after Gate C and when `inference_enabled`): Call 1
-  results with confidence; manual confirm required below threshold **0.7**
-  (configurable). "Generate text" triggers Call 2; never auto.
+  results with confidence. **≥ 0.7** (configurable default) → pre-fill mutable
+  fields. **< 0.7** → leave empty; block continue until species + ≥1 figure
+  (and other mandatories) are set by hand. "Generate text" triggers Call 2;
+  never auto.
 - Publish button (online-only), poll `publishing` → `published` | `failed`, surface
   error detail from sync_log.
 - Settings UI: WP username + application password + test-woo, inference endpoint +
@@ -226,8 +228,11 @@ Deliverables:
 
 - Call 1 (vision) proxy: **all inventory photos** downscaled to 1024 + Woo taxonomy
   snapshot + user metadata; OpenAI-compatible endpoint; model constrained to cached
-  taxonomy; confidence threshold **0.7** (configurable; relocate from older PRD FR22a).
-  Auto-run on calibrated create only if `inference_enabled`. Not top-down-only.
+  taxonomy; confidence threshold **0.7** (configurable default; not a POC Settings
+  slider). Auto-run on calibrated create only if `inference_enabled`. Not top-down-only.
+- Apply AGENTS §6 gate: ≥ threshold → pre-fill mutable species/categories/attributes/
+  tags; < threshold → empty fields + review gate requiring species + ≥1 figure
+  before ready.
 - Call 2 (text) proxy: never auto. User taps Generate text. LLM prose only; templates
   inject deterministic numbers. See `docs/PROMPTS.md`.
 - `test-inference` endpoint (vision capability check) before Call 2 is allowed.
@@ -236,8 +241,12 @@ Deliverables:
 
 Acceptance:
 
-- Local vision model configured: taxonomy suggestions appear with confidence; below
-  0.7 → manual confirm required.
+- Local vision model configured: ≥ 0.7 fields pre-fill and remain editable; user
+  override sticks.
+- Below 0.7: fields stay empty; UI blocks continue/ready until species and ≥1
+  figure attribute are set manually (asserted in integration or UI test).
+- No doc/code path auto-fills below-threshold guesses or treats inference as a
+  publish gate.
 - Inference OFF: app works end-to-end; tests assert zero calls to the inference endpoint.
 - Audit payloads present after a call; prompt file edits apply without server restart.
 - Gate C path remains green with inference OFF.

@@ -95,10 +95,17 @@ Return valid JSON matching this schema:
   duplicate them.
 - **Pre-population (when `inference_enabled`):** Call 1 results are the primary
   source that fills the review screen for species, character, wood categories,
-  figure/edge/grade attributes, and mapped `fig-*`/`feat-*` tags. The user
-  confirms or overrides. Manual entry always wins. Call 1 does not gate publish.
-- Confidence threshold behavior (≥0.7 pre-fill vs <0.7 empty + gate) is locked
-  in AGENTS §6.
+  figure/edge/grade attributes, and mapped `fig-*`/`feat-*` tags.
+- **Confidence gate (default threshold 0.7):**
+  - Field confidence **≥ threshold** → pre-populate that field (mutable;
+    user may clear or change it).
+  - Field confidence **< threshold** → leave empty. Do not show the model's
+    low-confidence guess as a default.
+  - Before the slab can leave review toward ready/publishable, the user must
+    have **species** and **≥1 figure attribute** set (manually if Call 1 left
+    them empty), plus the rest of the mandatory ready set.
+- Manual entry always wins. Call 1 is assist-only and does not gate publish.
+  Full suite must pass with inference OFF. Canonical lock: AGENTS §6.
 
 ---
 
