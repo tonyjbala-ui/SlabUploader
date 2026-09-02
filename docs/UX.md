@@ -6,13 +6,15 @@ A suggestion from the vision model never beats a typed value. Empty is better th
 
 ## Before you can list
 
-You cannot mark a slab ready until all of these are set:
+A listing is ready when the store row is complete, not when species and figure are filled.
 
-- exactly one species
-- at least one wood category
-- at least one figure (the store's figure list, including `fig-*` tags)
+Capture already gave you photos (cut and length axis confirmed), the listing PNG, SKU, length, thickness, and the computed square feet, board feet, and widths.
 
-The missing field is marked on the control itself, not only after you tap continue.
+Review still needs the rest of the store fields: one species, at least one wood category, edge type, at least one figure (the figure attribute and the matching fig tag), grade, the store thickness band taken from the thickness you typed, moisture (kiln-dried unless you change it), a price, and a title, short title, and description. Feature tags are optional.
+
+If vision is on and sure enough, it may fill some of those store fields. If it is not sure, species, wood category, edge, figure, grade, and feature tags stay empty for you to pick. That empty-vs-fill rule is only those fields. It is not the whole listing. SKU and measurements do not wait on the model.
+
+Any required field that is still empty is marked on that control. You should not have to tap continue to find out which one.
 
 ## First time you open the camera
 
@@ -76,7 +78,7 @@ If the model is at least that sure, it fills species, wood categories, edge, fig
 
 If it is less sure, leave those fields empty. Do not hide the guess in a secret field.
 
-If vision is off, the fields start empty. Same required set. You fill them by hand.
+If vision is off, those store fields start empty. You fill the listing by hand. Measurements and SKU are already there from capture.
 
 Species, wood category, and figure lists are only what we last pulled from the store. No "other." No mill list baked into the app. A species added in WooCommerce after the last sync does not appear until the next successful sync.
 
@@ -86,13 +88,7 @@ Title and description start empty until you type or tap Generate text. Generate 
 
 ### Nudges on the field
 
-Empty required fields show a line under the control as soon as the screen opens:
-
-- Species: "Pick the species from the store list."
-- Wood category: "Pick at least one wood category."
-- Figure: "Pick at least one figure."
-
-The line goes away when the field is valid. Continue stays off while any of the three is empty. You should not have to tap continue to find out which one.
+Every required field that is empty gets a line under that control when the screen opens. Species: "Pick the species from the store list." Wood category: "Pick at least one wood category." Figure: "Pick at least one figure." Edge, grade, moisture, price, title, short title, and description use the same pattern on their own controls if they are empty. The line goes away when that field is valid. Continue stays off while any required field is empty.
 
 ### Overrides
 
@@ -140,7 +136,7 @@ If the store is down, times out, or auth fails: one banner, "Couldn't reach the 
 4. Length axis: rotate and confirm by eye; retake if the shot is still wrong.
 5. Optional size gate: after crop, if the short side is under the tech-spec minimum, that photo cannot list until retake. No invented pixels.
 6. Vision on and sure: fields filled, still editable.
-7. Vision unsure: species, wood category, and figure empty, with lines under them. Cannot mark ready until all three are set.
+7. Vision unsure: species, wood category, edge, figure, grade, and feature tags empty. Continue stays off until the whole listing is filled, not only those fields.
 8. Species list is only synced names. You cannot type a name that is not there.
 9. Duplicate SKU: message under SKU, two actions, no status number.
 10. Stale category: message under that field, current options.

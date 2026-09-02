@@ -172,7 +172,7 @@ Prompt file mechanics: `docs/PROMPTS.md`.
 `draft → calibrated → ready → publishing → published` (or `failed` with detail).
 
 - **calibrated:** mask + axis confirmed; length/thickness/SKU entered; client computed sqft/bdft/widths; draft uploaded.
-- **ready:** mandatory fields filled (exactly one species, ≥1 wood category, ≥1 figure, plus remaining required listing fields). Values from Call 1 only when confidence ≥ 0.7, else manual. Inference optional.
+- **ready:** SKU, length, thickness, client sqft/bdft/widths, at least one inventory PNG, exactly one species, ≥1 wood category, edge type, ≥1 figure and matching fig tags, grade, thickness store band, moisture (default kiln-dried), price, title, short title, description. Feature tags optional. Vision may prefill taxonomy only when confidence ≥ 0.7.
 - Inference does not gate publish. Below-threshold Call 1 does not prefill; empty mandatory fields block ready (see UX spec).
 - Never confuse slab `draft` with **Woo draft** (`woo_create_status`).
 
