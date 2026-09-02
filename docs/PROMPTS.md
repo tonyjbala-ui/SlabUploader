@@ -93,6 +93,12 @@ Return valid JSON matching this schema:
   maps them to Woo `feat-*` product tags after the call returns. WooCommerce
   is the authoritative source for feat-* tag definitions; the design does not
   duplicate them.
+- **Pre-population (when `inference_enabled`):** Call 1 results are the primary
+  source that fills the review screen for species, character, wood categories,
+  figure/edge/grade attributes, and mapped `fig-*`/`feat-*` tags. The user
+  confirms or overrides. Manual entry always wins. Call 1 does not gate publish.
+- Confidence threshold behavior (≥0.7 pre-fill vs <0.7 empty + gate) is locked
+  in AGENTS §6.
 
 ---
 

@@ -39,7 +39,7 @@ flowchart TB
     P4[Length axis overlay — rotate / confirm]
     P5[User length + thickness + SKU]
     P6[sqft, bdft, 6in widths, 3:4 PNGs]
-    P7[Review Call 1 fields]
+    P7[Review: Call 1 pre-fill or manual taxonomy]
     P8[Tap Generate text]
     P9[Review title / desc — publish]
   end
@@ -84,7 +84,11 @@ flowchart TB
    on slab create **only if** `inference_enabled` is true. If disabled, Call 1
    is skipped; user can manually fill taxonomy and still trigger Call 2. Body:
    all originals downscaled to 1024 + Woo taxonomy snapshot + SKU/length/thickness.
-   Timeout 45s → error + retry on the phone. User reviews/corrects results.
+   Timeout 45s → error + retry on the phone. When inference is on, Call 1 results
+   **pre-populate** the review screen: species, wood categories, edge/figure/grade
+   attributes, `fig-*`/`feat-*` tags (from character/inclusions/voids/checks), with
+   confidence. User reviews and overrides. Manual entry stays authoritative;
+   Call 1 is assist-only.
 5. **Call 2** does not auto-fire. User taps Generate text. Server sends curated
    Call 1 results (or manually-entered taxonomy if Call 1 failed) + deterministic
    numbers + brand/GEO for prose generation; assembles title/description/short
