@@ -14,6 +14,7 @@ Do not assume a prior lab IP or hostname. See `docs/DEPLOYMENT.md`.
 | `APP_HOSTNAME` (HTTPS site name, e.g. `slab.example.local`) | |
 | OS / Docker version | |
 | Notes | |
+| `WOO_BASE_URL` (`https://` store; not editable in app) | |
 
 ## Ports and collisions
 

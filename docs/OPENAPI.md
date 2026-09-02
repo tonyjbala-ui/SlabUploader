@@ -120,7 +120,7 @@ the call returns. WooCommerce is the authoritative source for `feat-*` definitio
 
 ### SettingsView (read; secrets masked)
 ```jsonc
-{ "woo_base_url": "https://www.whidbeywoodstore.com",
+{ "woo_base_url": "https://www.whidbeywoodstore.com",  // WOO_BASE_URL env; read-only
   "woo_wp_username": "slab-uploader",   // non-secret identity; password never returned
   "woo_credentials_configured": true,
   "inference_base_url": "http://192.168.1.202:8080/v1",
@@ -209,6 +209,8 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 ### Settings
 - `GET /api/v1/settings` → `200` `SettingsView`
 - `PUT /api/v1/settings` — Update settings. Body: partial `{ key: value }`.
+  - `woo_base_url` is **not** writable (ignore or `422`). SoT is `WOO_BASE_URL`
+    env (HTTPS, compose). GET still returns it for read-only Settings text.
   - Woo credential keys: `woo_wp_username` (plain) and `woo_app_password`
     (write-only; AES-GCM at rest). Reject any payload that still sends
     `woo_consumer_key` / `woo_consumer_secret`.
@@ -216,7 +218,7 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
     never echoed).
 - `POST /api/v1/settings/test-woo` → `200` `{ "ok": bool, "detail": "..." }`
   - Uses stored username + application password over HTTPS Basic Auth against
-    the store REST v3 base. Fails closed if credentials missing or store HTTP.
+    `WOO_BASE_URL` REST v3. Fails closed if credentials missing or URL is not https.
 - `POST /api/v1/settings/test-inference` → `200` `{ "ok": bool, "vision_capable": bool, "detail": "..." }`
 
 ---

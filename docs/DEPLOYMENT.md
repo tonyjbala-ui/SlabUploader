@@ -41,7 +41,7 @@ SlabUploader/
 │   ├── docker-compose.yml
 │   ├── Caddyfile.fragment         # slab site block (merged into host Caddy)
 │   ├── INVENTORY.md               # filled at Gate B on the designated host
-│   ├── .env.example               # SLAB_AES_KEY, APP_*, port vars (no real secrets)
+│   ├── .env.example               # SLAB_AES_KEY, APP_*, WOO_BASE_URL (https only)
 │   └── backup.sh                  # sqlite .backup + images tar, with retention
 ├── frontend/                      # SvelteKit app
 └── backend/                       # FastAPI app
@@ -58,33 +58,29 @@ SlabUploader/
     └── Dockerfile
 ```
 
-## 3. docker-compose.yml (target shape)
+## 3. docker-compose.yml (checked in)
 
-```yaml
-services:
-  frontend:
-    build: ./frontend
-    ports: ["127.0.0.1:${FRONTEND_PORT:-18080}:80"]   # Caddy-only; not public
-    depends_on: [fastapi]
-    restart: unless-stopped
+Canonical file: `deploy/docker-compose.yml`. Placeholders: `deploy/.env.example`.
+From **repo root**:
 
-  fastapi:
-    build: ./backend
-    environment:
-      SLAB_AES_KEY: ${SLAB_AES_KEY}        # from .env (32-byte base64)
-      # no Woo/inference keys here — they live encrypted in SQLite (Settings UI)
-    volumes:
-      - slab_db:/data
-      - slab_images:/images
-      - ./prompts:/app/prompts:ro       # prompt files, read-only mount
-    ports: ["127.0.0.1:${FASTAPI_PORT:-18081}:8000"]  # Caddy-only
-    mem_limit: 2g                            # env convention: mem_limit preferred
-    restart: unless-stopped
-
-volumes:
-  slab_db:
-  slab_images:
 ```
+cp deploy/.env.example deploy/.env && chmod 600 deploy/.env
+# fill SLAB_AES_KEY, APP_HOSTNAME, WOO_BASE_URL (https:// only)
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+```
+
+Caddy site block: `deploy/Caddyfile.fragment` (merge into host Caddy). Compose
+service names `frontend` and `fastapi` must match that fragment.
+
+**`WOO_BASE_URL` (issue #11 — plan of record):**
+
+- Set in `deploy/.env` and injected into the FastAPI container at start.
+- **HTTPS only.** FastAPI must refuse missing / `http://` values at startup.
+- Not a Settings input and **not** a SQLite settings row.
+- Settings UI shows the URL as **read-only** text (which store this deploy hits).
+- Change store = edit `.env` + recreate the fastapi container.
+
+Woo Application Password stays out of compose (AES-GCM via Settings; issue #5).
 
 Conventions (house rules):
 
@@ -95,8 +91,8 @@ Conventions (house rules):
 
 ## 4. Caddy (fragment)
 
-API must win over the frontend catch-all. Put `handle /api/*` **before** the frontend
-`handle` block:
+Canonical file: `deploy/Caddyfile.fragment`. API must win over the frontend
+catch-all. Put `handle /api/*` **before** the frontend `handle` block:
 
 ```caddyfile
 {$APP_HOSTNAME} {
@@ -121,7 +117,8 @@ API must win over the frontend catch-all. Put `handle /api/*` **before** the fro
 
 | Secret | Where | Notes |
 |---|---|---|
-| `SLAB_AES_KEY` | `.env` on host (mode 600) → compose env | 32-byte base64; NEVER in the repo |
+| `SLAB_AES_KEY` | `deploy/.env` (mode 600) → compose env | 32-byte base64; NEVER in the repo |
+| `WOO_BASE_URL` | `deploy/.env` → compose → FastAPI env | `https://` only; Settings **read-only** |
 | Woo WP username + application password | SQLite `settings` (AES-GCM) via Settings UI | dedicated low-priv WP user; not consumer keys |
 | Inference API key | SQLite `settings` (AES-GCM) via Settings UI | usually empty for local llama.cpp |
 | `.env.example` | repo | placeholders only, committed |
