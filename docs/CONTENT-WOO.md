@@ -80,19 +80,29 @@ and the final stored content.
   FastAPI refuses `http://` at startup. Not a Settings field; UI shows it read-only.
 
 ### 2.2 Taxonomy sync (FR25)
-`POST /api/admin/taxonomy/sync` pulls, in order:
-1. `GET /products/categories?per_page=100` (paginate) → `woo_taxonomy(kind=category)`
-2. `GET /products/tags?per_page=100` → `kind=tag`
-3. `GET /products/attributes` → `kind=attribute`
-Rebuilds the cache table (delete + insert, single transaction). Returns counts plus
-`taxonomy_updated_at`. **Bump that timestamp only if a stored-subset row changed.**
-A no-op sync (identical rows) leaves the anchor alone. Client re-pulls when the
-anchor is newer than its snapshot.
+`POST /api/v1/admin/taxonomy/sync` pulls, in order:
+1. `GET /products/categories?per_page=100` (paginate) → species + wood-category leaves
+2. `GET /products/tags?per_page=100` → `fig-*` / `feat-*` only (other tags ignored)
+3. `GET /products/attributes` (+ terms) → five locked attributes
 
-**When to sync:** (1) always after successful `test-woo`; (2) opportunistic on
-publish if last bump is older than 1 hour; (3) optional launch / Settings refresh.
+Rebuilds cache tables in one transaction. Failure → `502 woo_error`; previous
+cache retained (never delete-then-fail).
 
-Failure → `502 woo_error`; previous cache retained (never delete-then-fail).
+**Manufactured anchor.** Woo REST has **no** usable last-modified on categories,
+attributes, or tags. FastAPI manufactures one `taxonomy_updated_at` /
+`cache_anchor` for the whole cache. Bump **only** when a row-level change hits the
+**stored subset** of cache columns (schema-driven: new columns auto-enter the
+diff). Catch adds, edits, and deletions. A no-op sync does **not** bump. Client
+re-pulls the full taxonomy iff the anchor advanced past its last value. One
+timestamp governs all metadata kinds. Do not invent a Woo-side taxonomy timestamp.
+
+**Triggers:** (1) successful `test-woo` **always** resyncs; (2) publish path if last
+successful sync older than **1 hour** (bump only on real change); (3) optional app
+launch / Settings refresh. Not every navigation.
+
+**Species exclusivity.** UI pickers, pricing seeds, and Call 1 species lists are
+**exactly** the synced species-category leaves. No hardcoded, invented, or fallback
+species set. A species new in Woo is selectable only after the next sync stores it.
 
 ### 2.3 Taxonomy assignment (FR26)
 
@@ -160,37 +170,46 @@ only. Do not diverge from AGENTS on force-draft. Do not conflate Woo create stat
 slab lifecycle status `published` (means Woo create succeeded locally).
 
 ### 2.5 Dedupe & idempotency (FR24a)
-Before create: `GET /products?sku={sku}`.
-- Found → `409 duplicate_sku` (v1 has no update path; human resolves).
-- Not found → proceed. (Single-owner, slab-by-slab, so no TOCTOU concern in practice;
-  the check is still done for correctness.)
+Before create: `GET /products?sku={sku}` (any Woo status).
+- Found → `409 duplicate_sku` (v1 has no update path).
+- Not found → proceed. (Single-owner, slab-by-slab; check still required.)
 
-### 2.6 Sync result & logging (FR28)
-- On success: set `slabs.woo_product_id`, `status=published`, `published_at`, write
-  `sync_log(status=success, woo_product_id, payload_hash)`.
-- On Woo HTTP error: `status=failed`, `sync_log(status=failed, http_status, error,
-  detail=<Woo error body>)`. Surface in UI + poll response.
+### 2.6 Post-submission recovery (409 / 422) and logging (FR28)
+
+Business-logic failures after the user taps publish map to **field-level recovery**
+on the review screen. No raw HTTP codes or stack traces in the UI. The draft stays
+on the phone across error-and-retry.
+
+| Class | When | UI recovery |
+|---|---|---|
+| **409 Conflict** | SKU already exists in Woo, any status | Inline on the **SKU** field. Copy names the conflict. Two paths: **edit SKU** and retry, or **open the existing listing** (store admin URL / product id). Never "update in place" of the other product in MVP. |
+| **422 Validation** | Stale or rejected value (category/attribute deleted since sync, price rule, etc.) | Inline on the **affected field**. Copy: value is no longer valid; show **current options** from the synced taxonomy cache (or re-pull if anchor advanced). |
+
+Server still writes `sync_log` and sets slab `failed` with machine codes for pollers.
+Success path unchanged: set `woo_product_id`, local `published`, purge images.
+
 - **Partial-failure note** (risk, see IMPL-PLAN): if media uploads succeed but the
-  final product POST fails, orphaned Woo attachments may exist. v1: log it; a manual
-  cleanup note is surfaced. Not auto-deleted (could delete a real image).
+  final product POST fails, orphaned Woo attachments may exist. v1: log it; surface
+  a manual cleanup note. Not auto-deleted.
 
 ## 3. End-to-end publish sequence (server side)
 ```
-1. validate slab publishable (length,width,thickness,price,species,char,≥1 photo)
-2. dedupe by SKU (GET /products?sku=)            → 409 duplicate_sku if exists
-3. (re)sync taxonomy if cache older than 1h       → best-effort; use existing cache on fail
-4. resolve category/tags/attributes (auto-assign + overrides)
+1. validate via shared validation module (hash check on submit; see ARCHITECTURE §8)
+2. dedupe by SKU (GET /products?sku=, any status) → 409 duplicate_sku if exists
+3. (re)sync taxonomy if last sync >1h; bump cache_anchor only on stored-subset change
+4. resolve category/tags/attributes (Call 1 / manual + name-match; synced set only)
 5. upload processed PNG inventory images → media  → source_urls
 6. POST /products (status per AGENTS §5 + woo_create_status) → woo_product_id
 7. write sync_log(success), set slab published, purge originals + processed images
-   on any failure at 2–6: write sync_log(failed), slab=failed, (images retained for retry)
+   on failure: sync_log(failed), slab=failed, images retained; map 409/422 to fields (§2.6)
 ```
 
 ## 4. What is deterministic vs scoped-inference here
-- Deterministic: templates, all dimension text, category/tag/attribute resolution,
-  payload assembly, dedupe, logging, title assembly.
+- Deterministic: templates, all dimension text, category/tag/attribute resolution
+  against the Woo-synced cache only, payload assembly, dedupe, logging, title assembly.
 - Scoped inference: optional LLM prose generation for description only. The LLM
-  never touches dimensions.
+  never touches dimensions and may only choose species/attributes present in the
+  synced taxonomy lists.
 
 ## 4. Field-level Woo errors (presentation in `docs/UX.md`)
 

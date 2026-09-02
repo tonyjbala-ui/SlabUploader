@@ -86,7 +86,8 @@ Online hybrid capture only. No OCR, ruler, or offline.
 Deliverables:
 
 - Online capture of 1–5 inventory photos (no airplane-mode requirement).
-- Client sheet/sliders, mask overlay + user confirm, length axis overlay + confirm.
+- Client sheet + **four knobs inline** on capture (live re-run, mask overlay on
+  source photo); user confirm; length axis overlay + confirm. No U2Net control.
 - Client sqft / bdft / 6" widths; 3:4 transparent PNG prep per TECH-SPEC.
 - Manual SKU, length, thickness; manual taxonomy as needed for one listing.
 - Calibrated draft upload: originals + processed PNGs + client-sent numbers. Server
@@ -97,11 +98,13 @@ Deliverables:
 
 Acceptance:
 
-- Ty captures a real slab on phone (online), confirms mask + axis, sees client numbers.
+- Ty captures a real slab on phone (online), adjusts any mask knob and sees a fresh
+  overlay without leaving the screen, confirms mask + axis, sees client numbers.
+- Species picker offers **only** Woo-synced species (after test-woo / sync).
 - One `SLAB-UAT-*` product appears in Woo admin as **draft** with correct SKU/price/images
   enough for Ty to open and inspect.
-- No Call 1/Call 2 required. No offline, OCR, or ruler path exercised.
-- Duplicate SKU → stop with error; no second product.
+- No Call 1/Call 2 required. No offline, OCR, ruler, or U2Net path exercised.
+- Duplicate SKU → stop with field-level recovery; no second product.
 
 Exit gate: Ty opens one draft listing in Woo admin. Gate C is green.
 
@@ -113,12 +116,14 @@ No server happy-path math. No `processing` slab status.
 Deliverables:
 
 - Routers per OPENAPI: slabs (CRUD + upload + poll), photos (serve), pricing-rules,
-  settings (AES-GCM + test stubs), taxonomy (cache read/write).
+  settings (AES-GCM + test stubs), taxonomy (cache read/write + manufactured
+  `taxonomy_updated_at` / `cache_anchor`).
 - Optimistic concurrency (`client_rev` / `server_rev`, 409 paths).
 - Status machine only: `draft → calibrated → ready → publishing → published | failed`.
   Job queue only for publish and inference (later). U2Net-on-demand is deferred from POC. Never for measure/crop.
 - Integration tests (httpx TestClient): create calibrated → poll → ready (manual fields);
-  revision conflict; duplicate SKU; settings encryption round-trip (secret never returned).
+  revision conflict; duplicate SKU; settings encryption round-trip (secret never returned);
+  taxonomy anchor bumps on stored-subset change and stays put on no-op sync.
 
 Acceptance:
 
@@ -126,6 +131,8 @@ Acceptance:
 - Integration tests green; secrets never leak into any GET response (asserted).
 - `docker compose up` (backend + a throwaway frontend stub) serves the API.
 - PUT stores client-sent derived fields; does not recompute sqft/bdft/widths as SoT.
+- Taxonomy: anchor advances only on real stored-subset change; client re-pulls only
+  when anchor is newer; `test-woo` always resyncs; publish respects the 1h threshold.
 
 Exit gate: Ty drives the API with curl through a full calibrated → ready cycle (manual).
 
@@ -200,11 +207,14 @@ Deliverables:
 - Media upload of processed PNG inventory photos; product create via `woo_create_status`
   (default **draft**). If SKU matches `SLAB-UAT-*`, force Woo **draft** even when
   Settings say publish.
-- Dedupe by SKU before create; `409 duplicate_sku`; no edit-same-SKU path in MVP.
+- Dedupe by SKU before create (any Woo status); `409 duplicate_sku` with field recovery
+  paths (edit SKU / open existing); no edit-same-SKU path in MVP.
+- `422 stale_field` recovery with current options from cache (CONTENT-WOO §2.6).
 - `sync_log` with payload_hash; on success set local `published`, purge originals +
   processed images on server.
-- `POST /api/admin/taxonomy/sync` against the real store.
-- Integration tests against a Woo mock (respx) for success + error + duplicate paths.
+- `POST /api/v1/admin/taxonomy/sync` against the real store; manufactured anchor.
+- Integration tests against a Woo mock (respx) for success + error + duplicate +
+  stale-field paths.
 - Partial-failure handling (orphaned media noted, per CONTENT-WOO §2.6).
 
 Acceptance:
@@ -212,7 +222,8 @@ Acceptance:
 - Real UAT publish: product appears in store admin as **draft** under `SLAB-UAT-*`,
   correct SKU/price/PNG images/category/tags/attributes; `woo_product_id` stored;
   `sync_log` written with payload_hash.
-- Duplicate SKU publish → 409, no second product created.
+- Duplicate SKU publish → 409 mapped to SKU field, no second product created.
+- Stale taxonomy value → 422 on that field with current options; draft retained.
 - Woo error (bad creds / 500) → slab `failed` with detail; retry path works.
 - All Woo integration tests green (mock + one live smoke).
 

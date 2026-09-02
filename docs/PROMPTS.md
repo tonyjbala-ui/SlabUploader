@@ -120,11 +120,15 @@ only the descriptive portion — dimensions, species, and measurements are
 injected by deterministic templates.
 
 ### Inputs assembled by the server
-- Curated Call 1 results (species, figure, character, grade)
-- Deterministic measurements: length, widths, sqft, bdft, thickness
-- Brand voice
-- GEO context
-- Title template and short description template
+- Portable Call 1 context (default: **full history resend** of Call 1 turn +
+  images metadata + assistant JSON). `previous_response_id` only if
+  `test-inference` recorded stateful support.
+- Explicit **confirmed vs inferred** labels for species, dimensions, and other
+  attributes (user overrides marked confirmed).
+- Deterministic measurements: length, widths, sqft, bdft, thickness (never invented)
+- Brand voice, GEO context, title/short templates
+- Shared validation module rules so Call 2 assembly rejects the same invalid
+  values the UI would
 
 ### System prompt (template)
 ```
