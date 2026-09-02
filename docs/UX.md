@@ -27,7 +27,9 @@ This is photography advice, not computer vision of a ruler.
 
 ## Capture: the mask is the measurement
 
-The cut around the wood is the footprint. Length, the 6" width samples, square feet, and board feet all sit on that mask. A fat or clipped cut quietly moves every number. Your eye on the overlay is the check. There is no quality score and no copy that tells you the cut is "broken."
+The cut around the wood is the footprint. Length, the 6" width samples, square feet, and board feet all sit on that mask. A fat or clipped cut quietly moves every number.
+
+Your eye on the overlay is the only check. Look at the photo with the cut drawn on it. If the edge sits on the wood, confirm. If it does not, move the knobs or retake. There is no quality score, no auto-gate on the mask, and no sentence the app invents about the cut being "broken" or the sheet being wrong. The image looks right or it does not.
 
 ### One screen
 
@@ -40,9 +42,13 @@ Four knobs sit next to the preview. You do not leave this screen for Settings to
 - Edge offset
 - Feather
 
-If auto sheet does not land, set Sheet to green or black with that knob. That is the same control, not a second prompt on the photo.
+**Sheet knob.** Auto may miss (odd lighting, mixed border). Flip Sheet to green or black yourself. That is how you pick the background — the same four knobs, live on this screen. No detector toast. No banner painted on the photo.
 
-Confirm when the overlay looks right. Then confirm the length axis (rotate if it is skewed). Then type length, thickness, and SKU.
+**Confirm the cut.** When the overlay looks right to you, confirm. Confirm stays available; it is your call, not a software verdict that the mask is one piece.
+
+**Length axis.** After the cut, a length-axis overlay appears on the photo. Rotate it until the long grain looks right. Confirm by eye. If rotation cannot fix a bad shot, retake. The app does not announce "axis misaligned" in copy; the overlay is the feedback.
+
+Then type length, thickness, and SKU.
 
 If the overlay still looks wrong after the knobs, retake. This first listing does not show a "Try harder" server matting button. Keep that path in the architecture docs; do not ship it here.
 
@@ -52,7 +58,11 @@ Move a knob and the overlay updates on this photo immediately. No save. No trip 
 
 Knob values stay on the phone (reset in Settings). They are not store secrets.
 
-Crop size and listing PNG rules live in `docs/TECH-SPEC-PIPELINE.md`. They are not messages painted on the photo.
+### After crop: photo too small
+
+Once the cut and axis are confirmed, the app builds the listing PNG (3:4, about 80% fill). Pixel math and the minimum short-side size live in `docs/TECH-SPEC-PIPELINE.md` (1600 when the source can supply it).
+
+That check is on the finished crop size, not a vision pass on the photo. If the short side would land under that minimum, the photo is too small after crop — retake a closer top-down shot. The app will not invent pixels or fake an upscale. This is not mask-quality copy and not a fail table on the capture screen.
 
 ## Review
 
@@ -124,15 +134,17 @@ If the store is down, times out, or auth fails: one banner, "Couldn't reach the 
 
 ## Checks a tester can run
 
-1. First-run overlay shows once. Skip stays skipped.
-2. Capture knobs are on the photo. Each slider redraws the overlay on that photo.
-3. Confirm and retake are available. Confirm is the mill owner's call on the overlay, not a software verdict.
-4. Vision on and sure: fields filled, still editable.
-5. Vision unsure: species, wood category, and figure empty, with lines under them. Cannot mark ready until all three are set.
-6. Species list is only synced names. You cannot type a name that is not there.
-7. Duplicate SKU: message under SKU, two actions, no status number.
-8. Stale category: message under that field, current options.
+1. First-run overlay shows once. Skip stays skipped. Ruler text is photography advice only; the app does not read the tape.
+2. Capture knobs are on the photo (sheet, sensitivity, edge offset, feather). Each slider redraws the overlay on that photo. No Settings detour for the cut.
+3. Confirm and retake are available. Confirm is the mill owner's call on the overlay, not a software verdict and not a generated mask-quality message.
+4. Length axis: rotate and confirm by eye; retake if the shot is still wrong.
+5. Optional size gate: after crop, if the short side is under the tech-spec minimum, that photo cannot list until retake. No invented pixels.
+6. Vision on and sure: fields filled, still editable.
+7. Vision unsure: species, wood category, and figure empty, with lines under them. Cannot mark ready until all three are set.
+8. Species list is only synced names. You cannot type a name that is not there.
+9. Duplicate SKU: message under SKU, two actions, no status number.
+10. Stale category: message under that field, current options.
 
 ## Not this pass
 
-Brand colors and type. Server "Try harder" matting. A slider for the 0.7 bar. Airplane-mode capture. Banners or scores on the photo about mask quality.
+Brand colors and type. Server "Try harder" matting. A slider for the 0.7 bar. Airplane-mode capture. Checker-generated capture strings, mask-quality banners, or a fail table on the photo.
