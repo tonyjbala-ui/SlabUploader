@@ -175,7 +175,9 @@ authoritative source for tag definitions; this table caches synced Woo tags.
 | `updated_at` | TEXT | |
 
 Keys (server settings; secrets encrypted at rest):
-- `woo_base_url`, `woo_consumer_key`, `woo_consumer_secret`
+- `woo_base_url`, `woo_wp_username`, `woo_app_password`
+  (username + WordPress application password for a dedicated low-priv WP user;
+  not WooCommerce consumer keys)
 - `inference_base_url`, `inference_api_key`, `inference_model`
 - `inference_enabled`, `content_llm_enabled`
 - `brand_voice`, `geo_context`

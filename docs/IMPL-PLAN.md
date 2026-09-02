@@ -165,9 +165,10 @@ Deliverables:
   (configurable). "Generate text" triggers Call 2; never auto.
 - Publish button (online-only), poll `publishing` → `published` | `failed`, surface
   error detail from sync_log.
-- Settings UI: Woo creds + test, inference endpoint + test (vision check), pricing
-  rules editor, brand voice/GEO, `woo_create_status`. Sheet/slider prefs stay in
-  client localStorage. Prompts are server files, not UI settings.
+- Settings UI: WP username + application password + test-woo, inference endpoint +
+  test (vision check), pricing rules editor, brand voice/GEO, `woo_create_status`.
+  Sheet/slider prefs stay in client localStorage. Prompts are server files, not UI
+  settings.
 - Secrets never appear in GET settings responses (masked `*_configured` only).
 
 Acceptance:
@@ -190,8 +191,9 @@ Media bytes are client-processed **PNGs**. Safety policy from AGENTS §5.
 
 Deliverables:
 
-- Woo client (httpx, Basic auth, timeouts), taxonomy sync into cache tables, auto-assign
-  per CONTENT-WOO §2.3 (categories + five attributes + fig-*/feat-* tags only).
+- Woo client (httpx, Basic auth with WP username + application password, timeouts),
+  taxonomy sync into cache tables, auto-assign per CONTENT-WOO §2.3 (categories +
+  five attributes + fig-*/feat-* tags only). No WooCommerce consumer keys.
 - Media upload of processed PNG inventory photos; product create via `woo_create_status`
   (default **draft**). If SKU matches `SLAB-UAT-*`, force Woo **draft** even when
   Settings say publish.

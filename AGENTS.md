@@ -121,11 +121,15 @@ Depth: `docs/TECH-SPEC-PIPELINE.md`.
 
 **Never in browser storage / JS bundles:**
 
-- Woo consumer key + secret
+- Woo WordPress username + application password (not consumer keys)
 - Inference base URL + API key
 - AES master key (`SLAB_AES_KEY` env only; never in DB or repo)
 
-**Server:** AES-GCM at rest in SQLite for Woo + inference secrets. Settings UI POSTs to FastAPI; server encrypts. All Woo and inference calls are server-side.
+**Server:** AES-GCM at rest in SQLite for Woo + inference secrets. Settings UI
+POSTs to FastAPI; server encrypts. All Woo and inference calls are server-side.
+Woo auth is a dedicated low-privilege WP user's application password over HTTPS
+Basic Auth to `/wp-json/wc/v3/`. Do not implement WooCommerce consumer keys
+(`ck_`/`cs_`) or the Woo → Settings → Advanced → REST API key UI.
 
 **Browser may persist (non-secret):** sheet mode, sensitivity, edge offset, feather (localStorage OK; reset-to-default required).
 
@@ -178,7 +182,7 @@ Prompt file mechanics: `docs/PROMPTS.md`.
 - Deterministic core unit-tested before UI consumes it.
 - One phase = reviewable, shippable increment; Ty exit-gates phases.
 - Phase naming: Phase 0–6 stay delivery chapters. **Phase 0 = Gates A+B.** **Gate C = early Phase 1** claimable publish slice.
-- Do not write secrets, real Woo keys, or AES keys into the repo.
+- Do not write secrets, real Woo application passwords, or AES keys into the repo.
 - Prefer fixing docs when code and locked decisions diverge — do not silently reintroduce `/12`, offline, ruler, or server happy-path pipeline.
 
 ---

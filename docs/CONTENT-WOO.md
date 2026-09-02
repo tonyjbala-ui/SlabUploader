@@ -60,9 +60,21 @@ and the final stored content.
 ## 2. WooCommerce integration (FR24–28)
 
 ### 2.1 Auth & client
-- REST v3: `GET/POST/PATCH/DELETE {woo_base_url}/wp-json/wc/v3/…`
-- Basic auth: `woo_consumer_key:woo_consumer_secret` (Decision 10; the "username" is
-  the consumer key, the "app password" is the consumer secret).
+- REST v3 surface unchanged: `GET/POST/PATCH/DELETE {woo_base_url}/wp-json/wc/v3/…`
+- Auth is **WordPress Application Passwords**, not WooCommerce consumer keys
+  (`ck_`/`cs_`) and not the user's login password.
+- Create a **dedicated low-privilege WordPress user** (shop manager, or a custom
+  role with product create/edit + media upload). Do not reuse an admin account.
+- Generate the application password under **Users → Profile → Application
+  Passwords**. WordPress requires **HTTPS** for that UI; the store must already
+  be on TLS (Caddy enforces HTTPS on the app side too).
+- Basic auth shape: `woo_wp_username:woo_app_password` (username + application
+  password). Spaces in the generated password are ignored by WordPress; store
+  the value as entered.
+- FastAPI is the sole Woo caller. Credentials live encrypted at rest in SQLite
+  (AES-GCM, `SLAB_AES_KEY` env). The browser never holds them.
+- Rotation: revoke the application password in the WP user profile, enter a new
+  one in Settings UI, then `POST /api/v1/settings/test-woo`.
 - Client: `httpx` with timeouts (connect 10s, read 60s for image-heavy create).
 - `woo_base_url` default: `https://www.whidbeywoodstore.com`.
 

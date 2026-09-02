@@ -121,6 +121,7 @@ the call returns. WooCommerce is the authoritative source for `feat-*` definitio
 ### SettingsView (read; secrets masked)
 ```jsonc
 { "woo_base_url": "https://www.whidbeywoodstore.com",
+  "woo_wp_username": "slab-uploader",   // non-secret identity; password never returned
   "woo_credentials_configured": true,
   "inference_base_url": "http://192.168.1.202:8080/v1",
   "inference_model": "<model>", "inference_enabled": true,
@@ -130,7 +131,9 @@ the call returns. WooCommerce is the authoritative source for `feat-*` definitio
   "aspect_ratio": "3:4", "output_px": 1600, "output_px_min": 1600,
   "fill_target": 0.80 }
 ```
-Secrets (keys) are never returned. Only a `*_configured` boolean.
+Secrets (application password, inference API key) are never returned. Only a
+`*_configured` boolean. Woo auth is WordPress Application Passwords
+(`woo_wp_username` + `woo_app_password` write-only), not consumer keys.
 Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 
 ---
@@ -206,8 +209,14 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 ### Settings
 - `GET /api/v1/settings` → `200` `SettingsView`
 - `PUT /api/v1/settings` — Update settings. Body: partial `{ key: value }`.
-  - Secrets re-encrypted server-side. `200` `SettingsView` returned.
+  - Woo credential keys: `woo_wp_username` (plain) and `woo_app_password`
+    (write-only; AES-GCM at rest). Reject any payload that still sends
+    `woo_consumer_key` / `woo_consumer_secret`.
+  - Secrets re-encrypted server-side. `200` `SettingsView` returned (password
+    never echoed).
 - `POST /api/v1/settings/test-woo` → `200` `{ "ok": bool, "detail": "..." }`
+  - Uses stored username + application password over HTTPS Basic Auth against
+    the store REST v3 base. Fails closed if credentials missing or store HTTP.
 - `POST /api/v1/settings/test-inference` → `200` `{ "ok": bool, "vision_capable": bool, "detail": "..." }`
 
 ---

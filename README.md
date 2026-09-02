@@ -37,7 +37,7 @@ Hard locks live in `AGENTS.md`. Short map:
 
 - **Hybrid:** phone owns mask/sliders/sqft/bdft/3:4 PNG; server stores, Woo, inference proxy, on-demand U2Net.
 - **bdft** = sqft × thickness_in (no `/12`). TV-1 through TV-10 on the client.
-- **Secrets** never in browser; AES-GCM on server; `SLAB_AES_KEY` env only.
+- **Secrets** never in browser; AES-GCM on server; `SLAB_AES_KEY` env only. Woo auth = WP application password (dedicated low-priv user), not consumer keys.
 - **Woo UAT:** draft default; `SLAB-UAT-*` force draft (AGENTS §5).
 - **Inference OFF** until Gate C; Call 1/2 after, still inside POC.
 - **Online-only for POC** (offline PWA deferred).

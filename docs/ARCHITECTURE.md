@@ -89,8 +89,10 @@ flowchart TB
    Call 1 results (or manually-entered taxonomy if Call 1 failed) + deterministic
    numbers + brand/GEO for prose generation; assembles title/description/short
    description from deterministic templates with the LLM prose injected.
-6. **Woo** is only FastAPI. Browser never sees the App Password. Duplicate SKU → stop, show error, no edit-same-SKU in MVP.
-7. **Settings** (species $/bdft, prompts, endpoint, Woo, publish status) live on the server; the phone is just the form.
+6. **Woo** is only FastAPI. Browser never sees the WordPress application
+   password. Duplicate SKU → stop, show error, no edit-same-SKU in MVP.
+7. **Settings** (species $/bdft, prompts, inference endpoint, Woo credentials,
+   publish status) live on the server; the phone is just the form.
 
 ## 4. What runs where
 
@@ -110,9 +112,13 @@ flowchart TB
 ## 5. Secrets and settings
 
 **Server-side only (never in browser JS):**
-1. WooCommerce consumer key + consumer secret (App Password). Server uses HTTP Basic Auth to call `/wp-json/wc/v3/`. Stored encrypted at rest in SQLite (AES-GCM).
-2. Inference endpoint base URL + API key. Stored encrypted. Server proxies all inference calls.
-3. AES master key. Env var on server, never in the DB.
+1. WordPress username + **application password** for a dedicated low-privilege
+   WP user. Server uses HTTP Basic Auth (`username:application_password`) against
+   `/wp-json/wc/v3/`. Stored encrypted at rest in SQLite (AES-GCM). Not Woo
+   consumer keys. Not the account login password.
+2. Inference endpoint base URL + API key. Stored encrypted. Server proxies all
+   inference calls.
+3. AES master key. Env var on server (`SLAB_AES_KEY`), never in the DB.
 
 **Browser-side (no secrets):**
 1. User preferences: sheet mode, sensitivity, edge offset, feather. Persisted in localStorage, reset-to-default available.
@@ -120,13 +126,17 @@ flowchart TB
 3. Taxonomy snapshot (categories, attributes, tags). Read from server. No auth needed.
 
 **Flow:**
-1. User enters Woo credentials in Settings UI on the phone.
-2. Browser POSTs them to `/api/settings` on FastAPI. Server stores encrypted.
-3. Server syncs taxonomy from Woo, caches in SQLite.
-4. Client reads taxonomy from `/api/admin/taxonomy` — no auth needed.
-5. All Woo calls go server-to-woo. Browser never calls Woo REST directly.
+1. Operator creates a low-privilege WP user on the store (HTTPS required for
+   Application Passwords UI). Generates an application password under
+   Users → Profile.
+2. User enters that username + application password in Settings UI on the phone.
+3. Browser POSTs them to `/api/v1/settings` on FastAPI. Server encrypts with
+   AES-GCM and stores ciphertext only.
+4. Server syncs taxonomy from Woo, caches in SQLite.
+5. Client reads taxonomy from `/api/v1/admin/taxonomy` — no auth needed.
+6. All Woo calls go server-to-Woo. Browser never calls Woo REST directly.
 
-This is the canonical WooCommerce App Password integration pattern. Browser-to-Woo REST requires CORS configuration on the Woo site, which is not under your control.
+Browser-to-Woo REST would need CORS on the store, which this design does not use.
 
 ## 6. Status machine
 

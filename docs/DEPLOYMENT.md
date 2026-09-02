@@ -122,9 +122,22 @@ API must win over the frontend catch-all. Put `handle /api/*` **before** the fro
 | Secret | Where | Notes |
 |---|---|---|
 | `SLAB_AES_KEY` | `.env` on host (mode 600) → compose env | 32-byte base64; NEVER in the repo |
-| Woo consumer key/secret | SQLite `settings` (AES-GCM) via Settings UI | rotate in Woo → re-enter in UI |
+| Woo WP username + application password | SQLite `settings` (AES-GCM) via Settings UI | dedicated low-priv WP user; not consumer keys |
 | Inference API key | SQLite `settings` (AES-GCM) via Settings UI | usually empty for local llama.cpp |
 | `.env.example` | repo | placeholders only, committed |
+
+**Woo credential setup (once per store):**
+
+1. Store must already be on **HTTPS**. WordPress will not offer Application
+   Passwords over plain HTTP.
+2. Create a dedicated low-privilege WordPress user (shop manager, or custom role
+   with product create/edit + media upload). Do not reuse an admin login.
+3. Sign in as that user → **Users → Profile → Application Passwords** → generate
+   a password for "SlabUploader".
+4. Enter the username + application password in the app Settings UI. FastAPI
+   stores them AES-GCM encrypted. Browser never keeps them.
+5. Rotate by revoking the old application password in the WP profile and
+   re-entering a new one in Settings, then `test-woo`.
 
 Key rotation (AES): `SLAB_AES_KEY` change requires re-encrypting settings —
 provide `python -m app.security.rekey NEW_KEY` (reads old key from env
@@ -156,7 +169,7 @@ provide `python -m app.security.rekey NEW_KEY` (reads old key from env
 | Logs | `docker compose logs -f fastapi` / `frontend` |
 | Health | `curl -k https://${APP_HOSTNAME}/api/health` |
 | Rekey AES | §5 |
-| Rotate Woo creds | Woo UI → new consumer key/secret → Settings UI → `POST /api/settings/test-woo` |
+| Rotate Woo creds | WP user profile → revoke old application password → new one → Settings UI → `POST /api/v1/settings/test-woo` |
 | Rotate inference key | Settings UI (if external) |
 | Edit a prompt | Edit the text file on host, no restart needed (read fresh each time) |
 | Rollback image | `git checkout <tag>` → rebuild → up -d; DB down-migrations provided for schema changes |
@@ -165,7 +178,7 @@ provide `python -m app.security.rekey NEW_KEY` (reads old key from env
 ## 8. Smoke test (after every deploy)
 
 1. `GET https://${APP_HOSTNAME}/api/health` → ok (from phone over HTTPS once CA trust is proven)
-2. Settings: Woo creds + `test-woo` ok; `woo_create_status=draft`; inference OFF for early gates
+2. Settings: WP application password + `test-woo` ok; `woo_create_status=draft`; inference OFF for early gates
 3. Create a slab → upload test photos (fixture set) → poll to `ready`
 4. Verify bdft/price match the fixture's expected values (golden test; bdft = sqft × thickness)
 5. Publish test slab with SKU `SLAB-UAT-…` → slab may show local `published`; Woo product must be **draft**
