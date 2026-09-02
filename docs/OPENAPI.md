@@ -148,17 +148,20 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 - `POST /api/v1/slabs` — Create a calibrated draft. Body: multipart with `data` (SlabCreate JSON) + `files[]` (photos) + `meta[]` (photo metadata).
   - Returns `201` `Slab` with `status: "calibrated"` (mask + axis confirmed; client-sent sqft/bdft/widths stored).
   - Server auto-runs Call 1 **only if** `inference_enabled` is true. `inference_status` becomes `inferring`, then `done`/`failed`.
-  - `409 duplicate_sku` if SKU already exists in Woo, any status.
+  - After Call 1, persist inferred values onto the slab **only** for fields with confidence ≥ 0.7. Below 0.7 leave those columns null so GET does not prefill.
+  - `409 duplicate_sku` if SKU already exists in Woo, any status (payload as PUT).
 - `GET /api/v1/slabs` → `200` `[Slab]` (most recent first).
 - `GET /api/v1/slabs/{id}` → `200` `Slab` / `404`.
   - Also used as the poll endpoint for inference and publish. Long-running ops set status to `inferring`/`publishing`; client backs off (1s, 2s, 4s, cap 10s).
 - `PUT /api/v1/slabs/{id}` — Update draft fields. Body: partial `SlabCreate` (any subset of editable fields + `client_rev`).
   - Server **stores** client-sent derived fields (`sqft`, `bdft`, widths). It may validate shape and ranges. It must **not** recompute mask, sqft, bdft, or widths as source of truth. Client re-runs TECH-SPEC math and PUTs the new numbers.
-  - `409 revision_conflict`, `409 duplicate_sku`.
+  - `409 revision_conflict`.
+  - `409 duplicate_sku` → `{ "error": "duplicate_sku", "sku": "...", "woo_admin_url": "..."? }`. UI maps this to the SKU field (`docs/UX.md`). Never show the code.
+  - `422` stale/invalid field → `{ "error": "stale_field", "field": "species_id", "options": [...] }` after a submission-time taxonomy refresh. UI maps to that field. Draft stays.
 - `DELETE /api/v1/slabs/{id}` → `204`. Soft: only unpublished drafts. Published slabs cannot be deleted from the app.
 
 ### Photo operations
-- `POST /api/v1/slabs/{id}/u2net/{pid}` — "Try harder." Server runs U2Net on this one photo, returns a better mask.
+- `POST /api/v1/slabs/{id}/u2net/{pid}` — **post-POC.** "Try harder." Server runs U2Net on this one photo, returns a better mask. Do not implement or expose in Gate C / first listing. Keep the contract; do not delete.
   - Returns `202` `{ mask_url: "..." }`. Client uses the mask to re-compute area/widths locally.
   - `404` if photo not found.
 - `GET /api/v1/slabs/{id}/photos/{pid}/original` → `image/*` (original, while retained).
@@ -173,20 +176,20 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
   - Returns `202` `{ "status": "inferring" }`. Client polls `GET /api/v1/slabs/{id}` for results.
   - Timeout > 45s → `504 gateway_timeout` with error detail.
 - `POST /api/v1/slabs/{id}/infer-content` — Trigger Call 2 (text).
-  - Server reads the Call 2 prompt file fresh, uses available taxonomy
-    (from Call 1 results or manually-entered values) + deterministic numbers
-    + brand voice + GEO context, sends to the LLM for prose generation, then
-    assembles title/description/short description from deterministic templates
-    with the LLM prose injected.
-  - Requires that inference was previously tested as connected
-    (`test-inference` succeeded at least once). If not connected, returns `422`.
+  - Server reads the Call 2 prompt file fresh. Default: **resend full Call 1
+    context** (prompt + assistant JSON + confirmed vs inferred labels). Use
+    `previous_response_id` only if test-inference reported stateful support.
+    Per-slab thread; delete on publish or abandon.
+  - Taxonomy + deterministic numbers + brand/GEO; LLM prose then templates.
+  - Requires `test-inference` `ok: true`. Else `422` (not connected / not portable).
   - Returns `202` `{ "status": "inferring" }`. Client polls for results.
   - Timeout > 45s → `504` with error detail.
 
 ### Publish
 - `POST /api/v1/slabs/{id}/publish` — Publish to WooCommerce.
-  - Pre-conditions: status in `ready`, all required fields set. Else `422 unpublishable`.
-  - Dedupe: if SKU already exists in Woo under any status → `409 duplicate_sku`.
+  - Pre-conditions: status in `ready`, mandatory set (exactly one species, ≥1 wood category, ≥1 figure, remaining listing fields). Else `422 unpublishable` with field keys — UI maps, no raw code.
+  - Dedupe: if SKU already exists in Woo under any status → `409 duplicate_sku` (same payload as PUT).
+  - Stale Woo value → `422 stale_field` as above. Draft stays on the phone.
   - Returns `202` `{ "status": "publishing" }`. Client polls.
   - Woo failure → slab `failed`, `sync_log` written, poll returns `502 woo_error`.
   - Success → slab `published`, `woo_product_id` set, images purged, draft row deleted.
@@ -195,10 +198,13 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 - `GET /api/v1/admin/taxonomy` → `200` taxonomy grouped by kind:
   ```jsonc
   { "categories": [...], "attributes": [{ name, slug, terms: [...] }],
-    "tags": [...] }
+    "tags": [...],
+    "taxonomy_updated_at": "ISO-8601" }
   ```
-- `POST /api/v1/admin/taxonomy/sync` → `200` `{ "categories": n, "attributes": n, "tags": n, "synced_at": "..." }`.
-  - Pulls from Woo, rebuilds the cache. `502 woo_error` on failure; previous cache retained.
+  Client re-pulls if `taxonomy_updated_at` is newer than its snapshot. Species/attribute/tag
+  lists here are the **only** legal options for UI pickers and Call 1.
+- `POST /api/v1/admin/taxonomy/sync` → `200` `{ "categories": n, "attributes": n, "tags": n, "taxonomy_updated_at": "..." }`.
+  - Pulls from Woo, rebuilds the cache. Bump `taxonomy_updated_at` **only** if a stored-subset row changed. `502 woo_error` on failure; previous cache retained.
 
 ### Pricing
 - `GET /api/v1/admin/pricing` → `[PriceRule]`
@@ -216,10 +222,16 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
     `woo_consumer_key` / `woo_consumer_secret`.
   - Secrets re-encrypted server-side. `200` `SettingsView` returned (password
     never echoed).
-- `POST /api/v1/settings/test-woo` → `200` `{ "ok": bool, "detail": "..." }`
+- `POST /api/v1/settings/test-woo` → `200` `{ "ok": bool, "detail": "...", "taxonomy_updated_at": "..." }`
   - Uses stored username + application password over HTTPS Basic Auth against
     `WOO_BASE_URL` REST v3. Fails closed if credentials missing or URL is not https.
-- `POST /api/v1/settings/test-inference` → `200` `{ "ok": bool, "vision_capable": bool, "detail": "..." }`
+  - On success, **always** run a taxonomy resync (bump anchor only if rows changed).
+- `POST /api/v1/settings/test-inference` → `200` `{ "ok": bool, "vision_capable": bool, "portable_resend": bool, "stateful_previous_response_id": bool, "detail": "..." }`
+  - Probe whether Call 1→Call 2 can use full-history resend and/or `previous_response_id`.
+  - **Fail closed** (`ok: false`) if neither portable resend nor stateful id works. Call 2 must not run.
+- `GET /api/v1/validation-module` → `200` `{ "hash": "...", "rules": { ... } }`
+  - Shared FastAPI module. Client caches it. Compare `hash` **on submit only**.
+  - Length rules are hard input caps. Field-exit uses the cache locally.
 
 ---
 

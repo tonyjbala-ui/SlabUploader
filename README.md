@@ -28,6 +28,7 @@ early Phase 1 first draft listing).
 | `docs/PROMPTS.md` | Vision + content prompts (server files) |
 | `docs/DEPLOYMENT.md` | Env-agnostic compose, Caddy, backup/restore |
 | `deploy/INVENTORY.md` | Host inventory worksheet (Gate B) |
+| `docs/UX.md` | POC interaction spec (review, capture knobs, errors, first-run) |
 | `docs/IMPL-PLAN.md` | Phased build plan with acceptance criteria + exit gates |
 | `docs/archive/PRD-2026-08.txt` | Frozen historical PRD only (not a source for new work) |
 
@@ -35,7 +36,7 @@ early Phase 1 first draft listing).
 
 Hard locks live in `AGENTS.md`. Short map:
 
-- **Hybrid:** phone owns mask/sliders/sqft/bdft/3:4 PNG; server stores, Woo, inference proxy, on-demand U2Net.
+- **Hybrid:** phone owns mask knobs / sqft / bdft / 3:4 PNG; server stores, Woo, inference proxy. U2Net “Try harder” deferred from POC.
 - **bdft** = sqft × thickness_in (no `/12`). TV-1 through TV-10 on the client.
 - **Secrets** never in browser; AES-GCM on server; `SLAB_AES_KEY` env only. Woo auth = WP application password (dedicated low-priv user), not consumer keys.
 - **Woo UAT:** draft default; `SLAB-UAT-*` force draft (AGENTS §5).

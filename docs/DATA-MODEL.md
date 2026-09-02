@@ -50,6 +50,7 @@ Draft-only. Deleted on successful publish. WooCommerce is the source of truth fo
 | `server_rev` | INTEGER NOT NULL DEFAULT 1 | |
 | `created_at` | TEXT NOT NULL | |
 | `updated_at` | TEXT NOT NULL | |
+| `inference_thread_id` | TEXT | optional stateful provider id; delete on publish or abandon |
 
 Indexes: `sku` (unique), `status`, `updated_at`.
 
@@ -64,7 +65,7 @@ any → failed (with error)
 
 1. **draft** — photos taken, no mask confirmed.
 2. **calibrated** — BG edge confirmed, length axis confirmed, length/thickness/SKU entered. Client computed sqft/bdft/widths. Draft uploaded to server.
-3. **ready** — all mandatory fields populated. Values from Call 1, manual, or mix. Inference is optional. Publishable.
+3. **ready** — exactly one species, ≥1 wood category, ≥1 figure, plus remaining listing fields. Call 1 may prefill only when confidence ≥ 0.7. Inference optional. Publishable.
 4. **publishing** — Woo create in flight. Poll for result.
 5. **published** — Woo product created. This row + all photos deleted. sync_log retained.
 6. **failed** — pipeline, inference, or publish error. Error detail stored. Retry available.
@@ -113,6 +114,7 @@ Rule: only inventory photos. Calibration photos do not exist in this design.
 | `synced_at` | TEXT | |
 
 Only species + wood category. Sync pulls all Woo categories; the app filters to the two we use.
+Species leaves from this table (after filter) are the **only** species the UI and Call 1 may offer.
 
 `UNIQUE(woo_id)`.
 
@@ -183,7 +185,9 @@ Keys (server settings; secrets encrypted at rest):
 - `inference_enabled`, `content_llm_enabled`
 - `brand_voice`, `geo_context`
 - `woo_create_status` ('draft' | 'publish'), default `draft` — Woo product create status key only; safety policy lives in AGENTS.md §5
+- `taxonomy_updated_at` — manufactured ISO timestamp; bump only when a stored-subset taxonomy row changes. No-op sync does not bump. Not Woo's own `date_modified`.
 - `aspect_ratio` ('3:4'), `output_px` (1600), `output_px_min` (1600), `fill_target` (0.80)
+
 
 Sheet/slider prefs (`sheet_mode`, sensitivity, edge offset, feather) are **not** server
 settings keys in POC. Client localStorage is source of truth (AGENTS §4 / ARCHITECTURE §5).

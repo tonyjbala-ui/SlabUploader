@@ -32,7 +32,7 @@ Archived PRD lines that conflict with the files above are non-authoritative (see
 
 ### Open doc defects
 
-POC issue wave (docs on this branch): Application Passwords (#5), Call 1 confidence gate (#9), `WOO_BASE_URL` compose-only (#11), Call 1 prefill (#8), synced-species-only (#12), inline mask knobs (#15), taxonomy cache anchor (#14), Call1→Call2 portable context (#2), shared validation (#17), 409/422 recovery (#18), UX spec (#10 → `docs/UX.md`).
+Landed on `docs/refactor-v2`: #5 Application Passwords, #8 Call 1 prefill, #9 confidence gate, #11 `WOO_BASE_URL`, #10 UX spec (`docs/UX.md`), #12 synced-species-only, #15 inline mask knobs (U2Net deferred), #14 taxonomy manufactured last-modified, #2 portable Call1→Call2, #17 shared validation module, #18 409/422 field recovery. Grok Build owns remaining OPENAPI #3 wording if still open.
 
 ---
 

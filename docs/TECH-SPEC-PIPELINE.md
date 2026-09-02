@@ -12,7 +12,7 @@ Inference, Woo payload, API, and schema live in other docs.
 1. **Determinism** — same inputs → bit-identical outputs. No randomness, no timestamps in math, no network calls for the math.
 2. **Manual entry is authoritative** — user-entered length, thickness, SKU, and price always win over any computed value.
 3. **Fallback chain is explicit** — every computed value has a defined fallback; the system never silently guesses.
-   - BG removal: chroma-key / threshold → user slider / sheet toggle → U2Net → retake.
+   - BG removal: chroma-key / threshold → four knobs (sheet, sensitivity, edge offset, feather) live on capture → retake. U2Net last-resort is deferred from POC (do not delete from architecture).
    - Length axis: min-area bounding rect → user rotate/confirm → retake if the photo is unusable.
    - Area: requires a single contiguous slab mask; broken mask → flag and retake.
 4. **Units** — inches in 1/8" steps; sqft and bdft to 2 decimals; price half-up to 2 decimals. Those rounded values are what get stored. No sqin in the UI, tests, or product copy.
@@ -48,8 +48,10 @@ The user must see where the cut will land and be able to fix it. Edge quality is
 - Show the slab edge clearly — that edge is the measurement boundary.
 - User confirms the edge before length / area run.
 
-### 3.3 Persisted settings (reset-to-default available)
-Factory values live in code. If the user changes them, the new values persist until reset.
+### 3.3 Capture knobs (inline, live, persisted)
+Factory values live in code. If the user changes them, the new values persist in localStorage until reset (Settings).
+
+All four knobs are **on the capture screen next to the overlay**, not in Settings. Changing any knob **immediately re-runs** §3.4 on the current photo and refreshes the overlay on the source image. No apply/save step. No server round trip in POC.
 
 1. **Sheet** — auto / green / black.
 2. **Sensitivity** — one slider; tighter vs looser detection (green: HSV range width; black: brightness cutoff).
@@ -59,12 +61,12 @@ Factory values live in code. If the user changes them, the new values persist un
 ### 3.4 Algorithms
 - **Green:** chroma-key in HSV. Border flood-fill so only sheet pixels connected to the image edge are removed (protects green-ish grain inside the slab).
 - **Black:** grayscale threshold. Same flood-fill (protects dark grain).
-- **Fallback:** if the edge is still wrong after adjustment, U2Net matting. Last resort.
+- **Fallback (POC):** retake. U2Net matting is last resort **post-POC** (one photo in, mask out; sliders still apply). Do not implement in Gate C.
 - Morphological close, then feather per the setting.
 
 ### 3.5 Edge quality
 - The mask must be one contiguous slab contour.
-- If the user cannot get a clean edge, retake is the resolution.
+- If the user cannot get a clean edge with knobs, retake is the POC resolution.
 
 ## 4. Length axis, widths, sqft, bdft
 

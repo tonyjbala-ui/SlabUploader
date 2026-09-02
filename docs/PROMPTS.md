@@ -85,8 +85,9 @@ Return valid JSON matching this schema:
 ```
 
 ### Notes
-- The taxonomy list (species, edge type, figure, grade) is pulled from the
-  synced Woo cache each time, so the options always match what's in the store.
+- The taxonomy list (species, wood categories, edge type, figure, grade, feat-*) is
+  pulled from the **synced Woo cache only**. No hardcoded mill species list. A term
+  not in the cache cannot be suggested or selected.
 - Brief definitions help the model distinguish ambiguous cases
   (e.g., "quarter-sawn" vs "cathedral").
 - Character/inclusions/voids/checks are free-text observations. The server
@@ -175,6 +176,10 @@ dimensions as measured. {geo_sentence}`
 - No numeric-accuracy guardrail needed — dimensions never pass through the LLM.
 - If `content_llm_enabled` is false, the LLM call is skipped and templates
   are used with a generic description paragraph.
+- **Portable Call 1 context (issue #2):** default is full resend of Call 1 (user
+  prompt + assistant JSON). Label each taxonomy value **confirmed** (user-edited)
+  vs **inferred** (still from Call 1). Stateful `previous_response_id` is opt-in
+  after `test-inference`. Fail closed if neither path works.
 
 ---
 

@@ -84,7 +84,14 @@ and the final stored content.
 1. `GET /products/categories?per_page=100` (paginate) → `woo_taxonomy(kind=category)`
 2. `GET /products/tags?per_page=100` → `kind=tag`
 3. `GET /products/attributes` → `kind=attribute`
-Rebuilds the cache table (delete + insert, single transaction). Returns counts.
+Rebuilds the cache table (delete + insert, single transaction). Returns counts plus
+`taxonomy_updated_at`. **Bump that timestamp only if a stored-subset row changed.**
+A no-op sync (identical rows) leaves the anchor alone. Client re-pulls when the
+anchor is newer than its snapshot.
+
+**When to sync:** (1) always after successful `test-woo`; (2) opportunistic on
+publish if last bump is older than 1 hour; (3) optional launch / Settings refresh.
+
 Failure → `502 woo_error`; previous cache retained (never delete-then-fail).
 
 ### 2.3 Taxonomy assignment (FR26)
@@ -96,9 +103,9 @@ inclusions / voids / checks → existing `feat-*`). All pre-filled values are
 mutable. The user confirms or overrides; manual entry always wins.
 
 **Below threshold:** those fields stay empty. The review screen gates continue
-until the user manually selects at least **species** and **one figure attribute**
-(and the rest of the ready mandatory set). Do not auto-fill below-threshold
-guesses. Full rules: AGENTS §6.
+until the user manually selects **exactly one species, ≥1 wood category, and ≥1
+figure**. Inline nudges: `docs/UX.md`. Do not auto-fill below-threshold
+guesses. Full functional rules: AGENTS §6.
 
 **Deterministic name-matching** resolves Call 1 names (or manual picks) to synced
 Woo IDs case-insensitive, trimmed. No match → empty; user picks in review. Woo
@@ -184,3 +191,12 @@ Before create: `GET /products?sku={sku}`.
   payload assembly, dedupe, logging, title assembly.
 - Scoped inference: optional LLM prose generation for description only. The LLM
   never touches dimensions.
+
+## 4. Field-level Woo errors (presentation in `docs/UX.md`)
+
+API codes stay on the wire. The phone never displays `409` or `422` as the message.
+
+- **409 duplicate SKU** (exists in Woo under any status): inline on SKU. Actions: edit SKU, or open/copy the existing listing. Draft stays on the phone. No in-place update of the other product in POC.
+- **422 stale or invalid field** (category/attribute/tag/price no longer valid): after a submission-time taxonomy refresh, return the field key plus the **current** allowed options. Inline on that field. Draft stays.
+
+The shared validation module (`GET /api/v1/validation-module`) is the client cache for required/length/charset. Hash check on submit only.

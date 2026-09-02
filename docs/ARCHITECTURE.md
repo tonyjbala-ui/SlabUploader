@@ -10,22 +10,24 @@ Companion: `docs/TECH-SPEC-PIPELINE.md`. Historical PRD: `docs/archive/PRD-2026-
 
 ## 1. Topology (hybrid)
 
-Phone does the happy-path pipeline (mask, length axis, sqft/bdft, 3:4 PNG).  
-FastAPI stores drafts, runs U2Net only on demand, proxies inference, talks to Woo.  
-reverse proxy terminates HTTPS.
+Phone does the happy-path pipeline (mask knobs, length axis, sqft/bdft, 3:4 PNG).
+FastAPI stores drafts, proxies inference, talks to Woo. reverse proxy terminates HTTPS.
+Server U2Net (“Try harder”) is **deferred from POC**, not deleted.
 
 ```
 phone (SvelteKit)
-  capture, mask, sliders, length axis, sqft/bdft, 3:4 PNG
-  if mask still bad → POST one photo → FastAPI U2Net → mask back → user continues
+  capture, four knobs inline, live mask overlay on the source photo,
+  length axis, sqft/bdft, 3:4 PNG
+  (POC: retake if mask still bad — no U2Net control)
 
 server
   reverse proxy → frontend (static)
-        → fastapi : store, settings, taxonomy, Woo, inference proxy, U2Net, prompt files
+        → fastapi : store, settings, taxonomy cache, Woo, inference proxy, prompt files
+        → U2Net endpoint reserved post-POC
 ```
 
 - Happy path never leaves the phone.
-- U2Net is explicit “Try harder” (or coverage failure), not every slab.
+- Mask knobs live on capture; changing a knob re-runs client BG removal immediately.
 - Woo + LLM keys stay on the server. Browser does not call Woo or the vision endpoint directly.
 
 ## 2. Swimlane
@@ -45,7 +47,7 @@ flowchart TB
   end
 
   subgraph API["server — FastAPI"]
-    A1[U2Net: one photo in, mask out]
+    A1[U2Net reserved post-POC]
     A2[Store draft: originals + PNGs + numbers]
     A3[Call 1 proxy — vision]
     A4[Call 2 proxy — text]
@@ -63,8 +65,7 @@ flowchart TB
   end
 
   P1 --> P2 --> P3
-  P3 -->|no — Try harder| A1
-  A1 --> P2
+  P3 -->|no — retune knobs or retake| P2
   P3 -->|no — Retake| P1
   P3 -->|yes| P4 --> P5 --> P6
   P6 --> A2
@@ -77,34 +78,34 @@ flowchart TB
 
 ## 3. Clarifications
 
-1. **Happy path** stays on the phone through PNG + numbers. FastAPI is idle until the user has a confirmed mask (or taps Try harder).
-2. **Try harder** is U2Net on **one photo** (the one on screen). Mask comes back; sliders still apply. Not a full re-pipeline on the server.
+1. **Happy path** stays on the phone through PNG + numbers. FastAPI is idle until the user has a confirmed mask.
+2. **Mask knobs** live on capture; each change re-runs client BG removal. Server U2Net “Try harder” is deferred from POC (keep the one-photo contract; do not ship the control).
 3. **Draft upload** sends **originals + processed PNGs + length/thickness/SKU/sqft/bdft/widths**. Originals are needed if Call 1 or a later retry must not depend on the tab still being open. After successful Woo publish, server deletes both.
 4. **Call 1** is server-side so the vision key never sits in the browser. Auto-run
    on slab create **only if** `inference_enabled` is true. If disabled, Call 1
    is skipped; user can manually fill taxonomy and still trigger Call 2. Body:
-   all originals downscaled to 1024 + Woo taxonomy snapshot + SKU/length/thickness.
-   Timeout 45s → error + retry on the phone. When inference is on, Call 1 results
-   **pre-populate** the review screen: species, wood categories, edge/figure/grade
-   attributes, `fig-*`/`feat-*` tags (from character/inclusions/voids/checks), with
-   confidence. User reviews and overrides. Manual entry stays authoritative;
-   Call 1 is assist-only.
-5. **Call 2** does not auto-fire. User taps Generate text. Server sends curated
-   Call 1 results (or manually-entered taxonomy if Call 1 failed) + deterministic
-   numbers + brand/GEO for prose generation; assembles title/description/short
-   description from deterministic templates with the LLM prose injected.
+   all originals downscaled to 1024 + **Woo-synced taxonomy only** + SKU/length/thickness.
+   Timeout 45s → error + retry on the phone. ≥0.7 confidence **pre-populates**
+   species, wood categories, edge/figure/grade, feat-* (mutable). Below 0.7 those
+   fields stay **empty**. Manual entry stays authoritative. Presentation: `docs/UX.md`.
+5. **Call 2** does not auto-fire. User taps Generate text. Server must send
+   **portable Call 1 context** (default: full conversation resend). Stateful
+   `previous_response_id` only after `test-inference` proves the provider supports
+   it. Call 2 inputs distinguish confirmed user values from inferred ones. Per-slab
+   thread; delete on submit or abandon.
 6. **Woo** is only FastAPI. Browser never sees the WordPress application
-   password. Duplicate SKU → stop, show error, no edit-same-SKU in MVP.
+   password. Duplicate SKU → 409 mapped on the SKU field (edit SKU or open existing).
+   Stale value → 422 on that field. Draft stays on the phone.
 7. **Settings** (species $/bdft, prompts, inference endpoint, Woo credentials,
-   publish status) live on the server; the phone is just the form.
+   publish status) live on the server. Store URL is env, displayed read-only.
 
 ## 4. What runs where
 
 | Job | Where |
 |---|---|
 | Camera, 1-5 photos | Client |
-| Sheet detect, chroma-key / black threshold, sliders, flood-fill | Client |
-| U2Net | Server, on demand |
+| Sheet detect, chroma-key / black threshold, four knobs, live re-run, flood-fill | Client |
+| U2Net “Try harder” | Server, **deferred from POC** |
 | Length axis overlay, 6" widths, sqft, bdft | Client |
 | 3:4 PNG, 80% fill (configurable aspect) | Client |
 | Draft + originals + processed PNGs | Server (after user continues) |
@@ -157,11 +158,11 @@ any → failed (with error)
 2. **calibrated** — user confirmed the BG edge, confirmed length axis, entered length/thickness/SKU. Client computed sqft/bdft/widths. Draft uploaded to server.
 3. **ready** — all mandatory fields populated (species, wood category, edge type,
    figure, grade, thickness, price, title/desc/short desc, at least one photo).
-   Values can come from Call 1 (≥ threshold pre-fill the user kept), manual
-   entry, or a mix. **Review gate:** if Call 1 returned below-threshold for a
-   field, that field stays empty until the user fills it. At minimum **species**
-   and **≥1 figure attribute** must be set before ready. Inference is optional;
-   with inference OFF the user fills everything by hand.
+   Values can come from Call 1 (≥ 0.7 pre-fill the user kept), manual entry, or a mix.
+   **Review gate:** below-threshold Call 1 leaves that field empty. Mandatory before
+   ready: **exactly one species, ≥1 wood category, ≥1 figure**. Inline nudges, not
+   submit-only (`docs/UX.md`). Inference is optional; with inference OFF the user
+   fills everything by hand.
 4. **publishing** — Woo create in flight. Poll for result.
 5. **published** — Woo product created, woo_product_id stored. Images purged.
 6. **failed** — pipeline, inference, or publish error. Error detail stored. Retry available.
@@ -169,3 +170,37 @@ any → failed (with error)
 Call 1 and Call 2 are assist-only. They do not gate publish. Low-confidence Call 1
 results do not auto-fill. If the user skips inference, the path is: calibrated →
 ready → publishing → published.
+
+## 7. Taxonomy cache (manufactured last-modified)
+
+Woo category/tag/attribute `date_modified` is not a reliable client cache key (the store does not bump it for every edit we care about). FastAPI **manufactures** a `taxonomy_updated_at` timestamp:
+
+- Bump **only** when a stored-subset row actually changes (species/wood-category leaves, five attributes + terms, `fig-*`/`feat-*` tags).
+- A no-op sync (same rows) **does not** bump.
+- Client re-pulls if the returned anchor is newer than its snapshot.
+
+**Triggers**
+
+1. `POST /api/v1/settings/test-woo` always runs a taxonomy resync after a successful connection test.
+2. Publish path: opportunistic resync if the last successful bump is older than **1 hour**.
+3. Optional: app launch and a Settings “Refresh taxonomy” control.
+
+Species pickers and Call 1 option lists are **exactly** this cached set. No hardcoded mill list.
+
+## 8. Shared validation module
+
+One FastAPI module is source of truth for field rules (required, length cap, charset, Woo option membership). Client caches `{ rules, hash }`.
+
+- Field-exit: local check against the cache.
+- Length: hard input cap (cannot type past Woo max).
+- Hash is compared **on submit only**. Mismatch → refresh module → re-validate → retry. Draft stays.
+
+## 9. Call 1 → Call 2 context
+
+Providers differ. Default portable path: **resend the full Call 1 turn** (prompt + images metadata + assistant JSON) with Call 2. Opt into `previous_response_id` only after probe.
+
+`POST /api/v1/settings/test-inference` fails closed (`ok: false`) if **neither** full-resend nor stateful id works. Do not ship a Call 2 that silently drops Call 1 context.
+
+Per-slab thread. Delete stored thread on successful publish or user abandon.
+
+Presentation of the review screen: `docs/UX.md`.

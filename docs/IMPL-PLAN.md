@@ -116,7 +116,7 @@ Deliverables:
   settings (AES-GCM + test stubs), taxonomy (cache read/write).
 - Optimistic concurrency (`client_rev` / `server_rev`, 409 paths).
 - Status machine only: `draft → calibrated → ready → publishing → published | failed`.
-  Job queue only for publish, inference (later), and U2Net-on-demand. Never for measure/crop.
+  Job queue only for publish and inference (later). U2Net-on-demand is deferred from POC. Never for measure/crop.
 - Integration tests (httpx TestClient): create calibrated → poll → ready (manual fields);
   revision conflict; duplicate SKU; settings encryption round-trip (secret never returned).
 
@@ -162,15 +162,16 @@ Deliverables:
   re-crop UI as SoT.
 - Inference UI (only meaningful after Gate C and when `inference_enabled`): Call 1
   results with confidence. **≥ 0.7** (configurable default) → pre-fill mutable
-  fields. **< 0.7** → leave empty; block continue until species + ≥1 figure
-  (and other mandatories) are set by hand. "Generate text" triggers Call 2;
-  never auto.
+  fields. **< 0.7** → leave empty; inline nudges; block continue until exactly
+  one species, ≥1 wood category, and ≥1 figure (`docs/UX.md`). "Generate text"
+  triggers Call 2; never auto.
+- Capture: four knobs on the mask screen with live re-run. No U2Net control in POC.
 - Publish button (online-only), poll `publishing` → `published` | `failed`, surface
   error detail from sync_log.
 - Settings UI: WP username + application password + test-woo, inference endpoint +
-  test (vision check), pricing rules editor, brand voice/GEO, `woo_create_status`.
-  Sheet/slider prefs stay in client localStorage. Prompts are server files, not UI
-  settings.
+  test (vision + portable-context probe), pricing rules editor, brand voice/GEO,
+  `woo_create_status`. Store URL read-only from `WOO_BASE_URL`. Sheet/slider prefs
+  stay in client localStorage. Prompts are server files, not UI settings.
 - Secrets never appear in GET settings responses (masked `*_configured` only).
 
 Acceptance:
@@ -228,14 +229,16 @@ Deliverables:
 
 - Call 1 (vision) proxy: **all inventory photos** downscaled to 1024 + Woo taxonomy
   snapshot + user metadata; OpenAI-compatible endpoint; model constrained to cached
-  taxonomy; confidence threshold **0.7** (configurable default; not a POC Settings
-  slider). Auto-run on calibrated create only if `inference_enabled`. Not top-down-only.
+  taxonomy **from the Woo cache only**; confidence threshold **0.7** (configurable
+  default; not a POC Settings slider). Auto-run on calibrated create only if
+  `inference_enabled`. Not top-down-only.
 - Apply AGENTS §6 gate: ≥ threshold → pre-fill mutable species/categories/attributes/
-  tags; < threshold → empty fields + review gate requiring species + ≥1 figure
-  before ready.
-- Call 2 (text) proxy: never auto. User taps Generate text. LLM prose only; templates
-  inject deterministic numbers. See `docs/PROMPTS.md`.
-- `test-inference` endpoint (vision capability check) before Call 2 is allowed.
+  tags; < threshold → empty fields + review gate requiring species + wood category
+  + figure before ready (`docs/UX.md`).
+- Call 2 (text) proxy: never auto. Portable Call 1 context (full resend default).
+  LLM prose only; templates inject deterministic numbers. See `docs/PROMPTS.md`.
+- `test-inference` endpoint (vision + portable vs stateful probe). Fail closed if
+  neither Call 1→Call 2 path works.
 - Feature flags; `inference_log` audit rows; prompt files read fresh each call.
 - No numeric/dimension invention by the LLM. LoRA deferred.
 
@@ -243,8 +246,8 @@ Acceptance:
 
 - Local vision model configured: ≥ 0.7 fields pre-fill and remain editable; user
   override sticks.
-- Below 0.7: fields stay empty; UI blocks continue/ready until species and ≥1
-  figure attribute are set manually (asserted in integration or UI test).
+- Below 0.7: fields stay empty; UI blocks continue/ready until exactly one
+  species, ≥1 wood category, and ≥1 figure are set manually (asserted).
 - No doc/code path auto-fills below-threshold guesses or treats inference as a
   publish gate.
 - Inference OFF: app works end-to-end; tests assert zero calls to the inference endpoint.
@@ -288,7 +291,7 @@ Exit gate: Ty signs off on UAT results; v1 declared done.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Green-sheet color varies / U2Net CPU latency high | slow or failed “Try harder” | chroma-key / black threshold primary on client; U2Net on demand only; never drop `output_px_min` below 1600 (undersized → retake) |
+| Green-sheet color varies | bad mask, wrong sqft | chroma-key / black threshold + inline knobs + live re-run; retake; U2Net deferred from POC; never drop `output_px_min` below 1600 |
 | No vision model available at deploy | species inference off | inference is toggleable; manual species/character fully functional — v1 not blocked |
 | Woo partial publish (media up, product POST fails) | orphaned images, confusing state | sync_log + retained images for retry; manual cleanup note; no auto-delete |
 | Local vision endpoint not up | inference off | configurable endpoint; deploy-time config; app works without it |
