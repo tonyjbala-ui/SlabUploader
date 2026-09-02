@@ -21,13 +21,13 @@ A short overlay, once. You can dismiss it and "Don't show again." Settings can b
 1. Lay the slab on a green or black sheet.
 2. Shoot from above, lens parallel to the broad face.
 3. Put a tape along the long grain so *you* can type length in inches. The app does not read the tape.
-4. Take one to five photos. Confirm the cut around the wood before you trust square footage.
+4. Take one to five photos. Look at the overlay and confirm when the cut sits on the wood.
 
 This is photography advice, not computer vision of a ruler.
 
 ## Capture: the mask is the measurement
 
-The cut around the wood is the footprint. Length, the 6" width samples, square feet, and board feet all sit on that mask. A fat or clipped cut quietly moves every number.
+The cut around the wood is the footprint. Length, the 6" width samples, square feet, and board feet all sit on that mask. A fat or clipped cut quietly moves every number. Your eye on the overlay is the check. There is no quality score and no copy that tells you the cut is "broken."
 
 ### One screen
 
@@ -40,25 +40,19 @@ Four knobs sit next to the preview. You do not leave this screen for Settings to
 - Edge offset
 - Feather
 
-Confirm the edge. Then confirm the length axis (rotate if it is skewed). Then type length, thickness, and SKU.
+If auto sheet does not land, set Sheet to green or black with that knob. That is the same control, not a second prompt on the photo.
 
-Retake if the photo is bad. This first listing does not show a "Try harder" server matting button. Keep that path in the architecture docs; do not ship it here.
+Confirm when the overlay looks right. Then confirm the length axis (rotate if it is skewed). Then type length, thickness, and SKU.
+
+If the overlay still looks wrong after the knobs, retake. This first listing does not show a "Try harder" server matting button. Keep that path in the architecture docs; do not ship it here.
 
 ### Live re-run
 
 Move a knob and the overlay updates on this photo immediately. No save. No trip to the server for mask tuning.
 
-### What you see when it fails
-
-| Situation | On screen |
-|---|---|
-| Sheet color not obvious | Pick green or black. Stay here. |
-| Cut is broken into pieces | "Cut is broken. Retake or tighten the sliders." Confirm stays off. |
-| Length axis looks wrong | Rotate. If it is still wrong, retake. |
-| After crop, the short side would be under 1600 pixels | This photo cannot list until you retake. The app will not invent pixels. |
-| Continue without confirming the cut | Continue stays off until you confirm. |
-
 Knob values stay on the phone (reset in Settings). They are not store secrets.
+
+Crop size and listing PNG rules live in `docs/TECH-SPEC-PIPELINE.md`. They are not messages painted on the photo.
 
 ## Review
 
@@ -112,7 +106,7 @@ Leaving a field: the phone checks the copy. Required empty fields block. Optiona
 
 Length: you cannot type past the store's max.
 
-SKU: letters A–Z, digits, hyphen, 3 to 24 characters. Title and description: normal text, store length limits. Bad characters fail when you leave the field.
+SKU: letters A-Z, digits, hyphen, 3 to 24 characters. Title and description: normal text, store length limits. Bad characters fail when you leave the field.
 
 Submit: full check plus "is my copy of the rules still current?" If not, the phone shows "Updating rules," fetches the new copy, checks again, and retries. You do not lose the form. Do not show a status number.
 
@@ -132,7 +126,7 @@ If the store is down, times out, or auth fails: one banner, "Couldn't reach the 
 
 1. First-run overlay shows once. Skip stays skipped.
 2. Capture knobs are on the photo. Each slider redraws the overlay on that photo.
-3. Confirm stays off until the cut is one piece.
+3. Confirm and retake are available. Confirm is the mill owner's call on the overlay, not a software verdict.
 4. Vision on and sure: fields filled, still editable.
 5. Vision unsure: species, wood category, and figure empty, with lines under them. Cannot mark ready until all three are set.
 6. Species list is only synced names. You cannot type a name that is not there.
@@ -141,4 +135,4 @@ If the store is down, times out, or auth fails: one banner, "Couldn't reach the 
 
 ## Not this pass
 
-Brand colors and type. Server "Try harder" matting. A slider for the 0.7 bar. Airplane-mode capture.
+Brand colors and type. Server "Try harder" matting. A slider for the 0.7 bar. Airplane-mode capture. Banners or scores on the photo about mask quality.
