@@ -156,13 +156,15 @@ any → failed (with error)
 
 1. **draft** — user took photos, no mask confirmed yet.
 2. **calibrated** — user confirmed the BG edge, confirmed length axis, entered length/thickness/SKU. Client computed sqft/bdft/widths. Draft uploaded to server.
-3. **ready** — all mandatory fields populated (species, wood category, edge type,
-   figure, grade, thickness, price, title/desc/short desc, at least one photo).
+3. **ready** — SKU, length, thickness, client sqft/bdft/widths, ≥1 inventory PNG,
+   exactly one species, ≥1 wood category, 1 edge type, ≥1 figure term, ≥1 fig-* tag,
+   ≥1 grade, thickness store band (round-up), 1 moisture (default kiln-dried), price.
+   feat-* 0+. Title/description may be typed, generated, or templated at publish.
    Values can come from Call 1 (≥ 0.7 pre-fill the user kept), manual entry, or a mix.
-   **Review gate:** below-threshold Call 1 leaves that field empty. Mandatory before
-   ready: **exactly one species, ≥1 wood category, ≥1 figure**. Inline nudges, not
-   submit-only (`docs/UX.md`). Inference is optional; with inference OFF the user
-   fills everything by hand.
+   **Review gate:** below-threshold Call 1 leaves species, wood category, figure,
+   edge, grade, and feat-* empty. That subset is not the submit list. Inline nudges
+   on every still-required control, not submit-only (`docs/UX.md`). Inference is
+   optional; with inference OFF the user fills everything by hand.
 4. **publishing** — Woo create in flight. Poll for result.
 5. **published** — Woo product created, woo_product_id stored. Images purged.
 6. **failed** — pipeline, inference, or publish error. Error detail stored. Retry available.

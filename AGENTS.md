@@ -158,7 +158,7 @@ Payload and publish sequence depth: `docs/CONTENT-WOO.md` (cites this section fo
 - **Call 1 (vision) / Call 2 (text) only after Gate C is green, still inside overall POC** before “done” — not post-POC.
 - Call 1 auto only if `inference_enabled`; Call 2 never auto-fires (user taps Generate text).
 - Call 1 body: all inventory photos @1024 (not top-down-only). Taxonomy lists sent to Call 1 are **exactly the Woo-synced species / attribute / tag sets**. No hardcoded or invented species.
-- **Confidence 0.7 (default):** ≥ 0.7 → pre-populate species, wood categories, edge, figure, grade, and feat-* from Call 1 (**mutable**). < 0.7 → those fields stay **empty**; user is gated before ready. Mandatory floor: species + ≥1 figure (product also requires ≥1 wood category). Presentation: `docs/UX.md`. Inference never auto-publishes.
+- **Confidence 0.7 (default):** ≥ 0.7 → pre-populate species, wood categories, edge, figure, grade, and feat-* from Call 1 (**mutable**). < 0.7 → those fields stay **empty**. That empty-start subset is not the submit list. Ready still requires the full named set in §7 (species + one figure is not enough). Presentation: `docs/UX.md`. Inference never auto-publishes.
 - **Taxonomy cache:** `taxonomy_last_sync_at` vs `taxonomy_anchor` (bump only on stored-subset hash change, including deletions). Client re-pulls iff the anchor advanced. `test-woo` always syncs; publish if last_sync >1h. No per-nav sync. No Woo taxonomy timestamp.
 - Call 2 portable context: default full resend; never require `previous_response_id`. `test-inference` two-turn probe `stateful|stateless|fail`. Fail blocks **Call 2 enablement only**.
 - LoRA deferred. No numeric/dimension invention by LLM; templates inject deterministic numbers.
@@ -172,7 +172,7 @@ Prompt file mechanics: `docs/PROMPTS.md`.
 `draft → calibrated → ready → publishing → published` (or `failed` with detail).
 
 - **calibrated:** mask + axis confirmed; length/thickness/SKU entered; client computed sqft/bdft/widths; draft uploaded.
-- **ready:** SKU, length, thickness, client sqft/bdft/widths, at least one inventory PNG, exactly one species, ≥1 wood category, edge type, ≥1 figure and matching fig tags, grade, thickness store band, moisture (default kiln-dried), price, title, short title, description. Feature tags optional. Vision may prefill taxonomy only when confidence ≥ 0.7.
+- **ready:** SKU, length, thickness, client sqft/bdft/widths, ≥1 inventory PNG, exactly one species, ≥1 wood category, 1 edge type, ≥1 figure term, ≥1 fig-* tag, ≥1 grade, thickness store band (round-up), 1 moisture (default kiln-dried; not inferred), price. feat-* 0+. Title/description may be typed, generated, or templated at publish. Vision may prefill the taxonomy subset only when confidence ≥ 0.7.
 - Inference does not gate publish. Below-threshold Call 1 does not prefill; empty mandatory fields block ready (see UX spec).
 - Never confuse slab `draft` with **Woo draft** (`woo_create_status`).
 

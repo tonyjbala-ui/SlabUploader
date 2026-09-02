@@ -6,13 +6,51 @@ A suggestion from the vision model never beats a typed value. Empty is better th
 
 ## Before you can list
 
-A listing is ready when the store row is complete, not when species and figure are filled.
+A listing is ready when the store row is complete. Species plus one figure is not enough.
 
-Capture already gave you photos (cut and length axis confirmed), the listing PNG, SKU, length, thickness, and the computed square feet, board feet, and widths.
+### Capture (calibrated)
 
-Review still needs the rest of the store fields: one species, at least one wood category, edge type, at least one figure (the figure attribute and the matching fig tag), grade, the store thickness band taken from the thickness you typed, moisture (kiln-dried unless you change it), a price, and a title, short title, and description. Feature tags are optional.
+These are already done before review. You cannot list without them.
 
-If vision is on and sure enough, it may fill some of those store fields. If it is not sure, species, wood category, edge, figure, grade, and feature tags stay empty for you to pick. That empty-vs-fill rule is only those fields. It is not the whole listing. SKU and measurements do not wait on the model.
+- Cut around the wood confirmed by eye (the overlay sits on the photo; no checker banner)
+- Length axis confirmed by eye
+- Length in inches
+- Thickness in inches
+- SKU
+- Square feet, board feet, and min / max / average width (computed from the cut and the length you typed; shown, not guessed)
+- At least one listing PNG (the cropped inventory photo)
+
+### Review / submit
+
+These are required to mark the slab ready and send it to the store. Mill-owner names; the column names live in `docs/DATA-MODEL.md`.
+
+- SKU (already typed in capture; still required)
+- Length and thickness in inches (already typed; still required)
+- Price
+- Species — exactly one, from the store list
+- Wood category — at least one
+- Edge type
+- Figure — at least one from the store figure list (the figure attribute)
+- Grade — at least one
+- Thickness class — the store thickness band, rounded up from the thickness you typed
+- Moisture — required. Starts as kiln-dried. You can change it. Vision does not pick this.
+- Figure tags (`fig-*`) — at least one
+- Feature tags (`feat-*`) — optional (zero or more)
+- Listing photos — the inventory PNG(s) from capture
+
+The store product also needs a name (title), categories, tags, images, SKU, and price. Categories, tags, images, SKU, and price are the fields above. Title can be typed or written with Generate text. If it is still empty when you list, the templates write the name. Generate text never runs on its own.
+
+Continue stays off until every required field in this list is set. Feature tags may stay empty.
+
+### When vision is unsure
+
+The 0.7 bar is only about whether the model may fill a guess. It is not a shorter submit list.
+
+If vision is off, or on but under 0.7, these start empty: species, wood category, figure, edge, grade, and feature tags. You pick them. Empty is better than a confident-looking wrong species.
+
+Moisture still starts kiln-dried. Thickness class still comes from the thickness you typed. SKU, length, thickness, photos, and price do not wait on the model.
+
+You still cannot list until the full review / submit list is filled — not only species and figure.
 
 Any required field that is still empty is marked on that control. You should not have to tap continue to find out which one.
 
@@ -88,7 +126,23 @@ Title and description start empty until you type or tap Generate text. Generate 
 
 ### Nudges on the field
 
-Every required field that is empty gets a line under that control when the screen opens. Species: "Pick the species from the store list." Wood category: "Pick at least one wood category." Figure: "Pick at least one figure." Edge, grade, moisture, price, title, short title, and description use the same pattern on their own controls if they are empty. The line goes away when that field is valid. Continue stays off while any required field is empty.
+Every required control that is empty gets a line under it when the screen opens — not only species, wood category, and figure. The line goes away when that field is valid. Continue stays off while any required field is empty.
+
+- SKU: "Enter a SKU."
+- Length: "Enter the length in inches."
+- Thickness: "Enter the thickness in inches."
+- Price: "Enter a price."
+- Species: "Pick the species from the store list."
+- Wood category: "Pick at least one wood category."
+- Edge type: "Pick an edge type."
+- Figure: "Pick at least one figure."
+- Grade: "Pick at least one grade."
+- Thickness class: "Confirm the store thickness band." (filled from the thickness you typed; mark it if it is missing)
+- Moisture: "Pick moisture." (starts kiln-dried; only marks if you clear it)
+- Figure tags: "Pick at least one figure tag."
+- Photos: "Add a listing photo." (already true after a good capture)
+
+Feature tags have no missing mark. Title and description have no missing mark; templates write a name if you leave them blank.
 
 ### Overrides
 
@@ -136,7 +190,7 @@ If the store is down, times out, or auth fails: one banner, "Couldn't reach the 
 4. Length axis: rotate and confirm by eye; retake if the shot is still wrong.
 5. Optional size gate: after crop, if the short side is under the tech-spec minimum, that photo cannot list until retake. No invented pixels.
 6. Vision on and sure: fields filled, still editable.
-7. Vision unsure: species, wood category, edge, figure, grade, and feature tags empty. Continue stays off until the whole listing is filled, not only those fields.
+7. Vision unsure: species, wood category, figure, edge, grade, and feature tags empty, with lines under every still-required control (including price, moisture if cleared, figure tags). Continue stays off until the full submit list is filled, not only species and figure.
 8. Species list is only synced names. You cannot type a name that is not there.
 9. Duplicate SKU: message under SKU, two actions, no status number.
 10. Stale category: message under that field, current options.

@@ -188,7 +188,7 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 
 ### Publish
 - `POST /api/v1/slabs/{id}/publish` — Publish to WooCommerce.
-  - Pre-conditions: status `ready` with the DATA-MODEL ready set (SKU, measures, PNG, species, wood category, edge, figure+fig tags, grade, thickness band, moisture, price, title, short title, description). Else `422 unpublishable` with field keys. UI maps, no raw code.
+  - Pre-conditions: status `ready` with SKU, length_in, thickness_in, client sqft/bdft/widths, ≥1 inventory PNG, exactly one species, ≥1 wood category, 1 edge type, ≥1 figure term, ≥1 fig-* tag, ≥1 grade, thickness_term_id, 1 moisture, price. Else `422 unpublishable` with field keys. UI maps, no raw code.
   - Dedupe: if SKU already exists in Woo under any status → `409 duplicate_sku` (same payload as PUT).
   - Stale Woo value → `422 stale_field` as above. Draft stays on the phone.
   - Returns `202` `{ "status": "publishing" }`. Client polls.

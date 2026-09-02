@@ -65,7 +65,7 @@ any → failed (with error)
 
 1. **draft** — photos taken, no mask confirmed.
 2. **calibrated** — BG edge confirmed, length axis confirmed, length/thickness/SKU entered. Client computed sqft/bdft/widths. Draft uploaded to server.
-3. **ready** — SKU, length, thickness, client sqft/bdft/widths, ≥1 inventory PNG, one species, ≥1 wood category, edge type, ≥1 figure and fig tags, grade, thickness store band, moisture (default kiln-dried), price, title, short title, description. Feature tags optional. Vision may prefill taxonomy only when confidence ≥ 0.7.
+3. **ready** — SKU, length_in, thickness_in, client sqft/bdft/widths, ≥1 inventory PNG, exactly one species, ≥1 wood category, 1 edge type, ≥1 figure term, ≥1 fig-* tag, ≥1 grade, thickness_term_id (round-up from measured thickness), 1 moisture (default kiln-dried; user override; not inferred), price. feat-* 0+. Title/short_title/description may be typed, generated, or written by templates at publish. Call 1 may prefill only the vision subset when confidence ≥ 0.7. Inference optional. Publishable.
 4. **publishing** — Woo create in flight. Poll for result.
 5. **published** — Woo product created. This row + all photos deleted. sync_log retained.
 6. **failed** — pipeline, inference, or publish error. Error detail stored. Retry available.

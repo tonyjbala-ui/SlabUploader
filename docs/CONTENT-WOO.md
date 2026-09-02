@@ -99,9 +99,12 @@ edge, figure, grade, and feature tags (character, inclusions, voids, checks map
 to existing `feat-*` tags only). The mill owner can change every filled value.
 Typed values always win.
 
-If it is less sure, those fields stay empty. Review will not continue until they
-pick exactly one species, at least one wood category, and at least one figure.
-How that looks on the phone: `docs/UX.md`. Do not fill a low-confidence guess.
+If it is less sure, those fields stay empty. That empty-start subset is not
+the submit list. Review will not continue until the full ready set is filled:
+SKU, length, thickness, price, species, wood category, edge type, figure,
+grade, thickness band, moisture, fig-* tags, and inventory PNG(s). Species
+plus one figure is not enough. How that looks on the phone: `docs/UX.md`.
+Do not fill a low-confidence guess.
 
 Names from vision or from typing match store ids case-insensitive, trimmed. No
 match leaves the field empty so they can pick from the list. The store will still
