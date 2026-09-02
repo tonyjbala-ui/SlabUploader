@@ -1,15 +1,11 @@
-# Content Generation & WooCommerce Integration
+# Listing copy and the store
 
-Status: SPEC · 2026-08-24 · SlabUploader
-Covers: FR16 (deterministic content templates + optional LLM refinement), FR17
-(brand voice / GEO), FR18 (editable, never auto-published), FR25–28 (taxonomy sync,
-product create, sync log), and the exact WooCommerce REST v3 payload.
+How titles and descriptions are built, how we talk to WooCommerce, and the exact create payload. Templates always run. Generate text is optional and never publishes on its own.
 
-## 1. Content generation (FR16–18)
+## 1. Titles and descriptions
 
-### 1.1 Deterministic templates (always on)
-Templates are configured in Settings (`content_templates`, editable per FR32).
-Defaults below. Placeholders use `{field}`.
+### 1.1 Templates (always on)
+Templates live in Settings. Defaults below. Placeholders use `{field}`.
 
 **title** (default):
 ```
@@ -32,32 +28,26 @@ average width of {width_avg_in}in and {thickness_in}in thickness ({bdft} bdft).
 Each slab is naturally shaped — width varies along the length at {width_min_in}in to
 {width_max_in}in. Sold by the slab; dimensions as measured. {geo_sentence}
 ```
-`geo_sentence` = GEO context sentence from Settings (FR17), e.g.
+`geo_sentence` is the geography sentence from Settings, e.g.
 `"Locally milled and shipped from the Pacific Northwest."` (default if unset: none).
 
 All template math fields come from the deterministic pipeline (never from the LLM).
 
-### 1.2 Call 2 content generation (toggleable)
-- Triggered only if `content_llm_enabled` is true AND the user taps "Generate text"
-  on the review screen (never automatic).
-- **LLM writes prose only**: the prompt sends the slab's deterministic measurements
-  as facts, and asks the model to write compelling product description prose
-  (character, color, warmth, grain, use cases). Dimensions are never generated
-  by the LLM — they are injected by deterministic templates.
-- **Template assembly**: after the LLM returns, the server assembles the final
-  title, short description, and full description from deterministic templates
-  with the LLM prose injected into the description.
-- No numeric guardrail needed — dimensions never pass through the LLM.
-- Output is always editable (FR18); `content_source` = `llm` when used.
-- If the inference endpoint is text-only or unreachable → the button is disabled,
-  templates still work. No failure mode blocks publish.
+### 1.2 Generate text (optional)
+The mill owner taps Generate text on review. It never runs by itself. It is off unless `content_llm_enabled` is true.
+
+The model writes prose only (character, color, grain, uses). Measured length, width, thickness, square feet, and board feet are facts in the prompt. The model does not invent numbers. Templates inject those numbers into the title and description after the prose comes back.
+
+The mill owner can always edit the result. `content_source` is `llm` when this path ran.
+
+If the text endpoint is missing or down, disable the button. Templates still work. Publish is never blocked because Generate text failed.
 
 ### 1.3 Audit
 Every content generation (template or LLM) is logged with inputs (template version,
 slab facts), the LLM request/response payload when used (inference calls logged for audit),
 and the final stored content.
 
-## 2. WooCommerce integration (FR24–28)
+## 2. WooCommerce
 
 ### 2.1 Auth & client
 - REST v3 surface unchanged: `GET/POST/PATCH/DELETE {WOO_BASE_URL}/wp-json/wc/v3/…`
@@ -79,7 +69,7 @@ and the final stored content.
 - Store URL is **`WOO_BASE_URL`** from Docker Compose / host `.env` (HTTPS only).
   FastAPI refuses `http://` at startup. Not a Settings field; UI shows it read-only.
 
-### 2.2 Taxonomy sync (FR25)
+### 2.2 Store lists (species, tags, attributes)
 `POST /api/v1/admin/taxonomy/sync` pulls, in order:
 1. `GET /products/categories?per_page=100` (paginate) → species + wood-category leaves
 2. `GET /products/tags?per_page=100` → `fig-*` / `feat-*` only (other tags ignored)
@@ -96,29 +86,27 @@ invent a Woo-side taxonomy timestamp. Do not sync per navigation.
 
 **Triggers:** (1) successful `test-woo` **always** resyncs; (2) publish if
 `now - taxonomy_last_sync_at > 1 hour` then reconcile (bump only on real change);
-(3) optional app launch / Settings refresh. Stale selected IDs after a bump are
-#18 422, not a silent remap.
+(3) optional app launch / Settings refresh. If a picked id vanished after a refresh, show that field as no longer valid. Do not silently swap it.
 
 **Species exclusivity.** UI pickers, pricing seeds, and Call 1 species lists are
 **exactly** the synced species-category leaves. No hardcoded, invented, or fallback
 species set. A species new in Woo is selectable only after the next sync stores it.
 
-### 2.3 Taxonomy assignment (FR26)
+### 2.3 What goes on the listing
 
-**Primary source when inference is on and confidence ≥ threshold (default 0.7):**
-Call 1 vision results pre-fill the review screen for species, wood categories,
-edge type, figure, grade, and mapped `fig-*` / `feat-*` tags (character /
-inclusions / voids / checks → existing `feat-*`). All pre-filled values are
-mutable. The user confirms or overrides; manual entry always wins.
+When vision is on and it is at least 0.7 sure, it fills species, wood categories,
+edge, figure, grade, and feature tags (character, inclusions, voids, checks map
+to existing `feat-*` tags only). The mill owner can change every filled value.
+Typed values always win.
 
-**Below threshold:** those fields stay empty. The review screen gates continue
-until the user manually selects **exactly one species, ≥1 wood category, and ≥1
-figure**. Inline nudges: `docs/UX.md`. Do not auto-fill below-threshold
-guesses. Full functional rules: AGENTS §6.
+If it is less sure, those fields stay empty. Review will not continue until they
+pick exactly one species, at least one wood category, and at least one figure.
+How that looks on the phone: `docs/UX.md`. Do not fill a low-confidence guess.
 
-**Deterministic name-matching** resolves Call 1 names (or manual picks) to synced
-Woo IDs case-insensitive, trimmed. No match → empty; user picks in review. Woo
-required-field validation still surfaces gaps at publish.
+Names from vision or from typing match store ids case-insensitive, trimmed. No
+match leaves the field empty so they can pick from the list. The store will still
+reject a missing required field at publish.
+
 
 Field rules:
 - **Categories**: species leaf (1 required) plus wood-category leaf ids (1+).
@@ -129,9 +117,9 @@ Field rules:
   character, length, or free-text thickness as product attributes. Missing
   attributes are skipped, not created (v1: no attribute creation).
 
-Call 1 is assist-only and never gates publish. Inference OFF → full manual path.
+Vision only suggests. It never blocks publish. With vision off, everything is typed.
 
-### 2.4 Product create payload (FR27)
+### 2.4 Create payload
 `POST /products` — body (only non-null fields sent):
 ```jsonc
 {
@@ -161,31 +149,27 @@ For reliability the server:
 2. Reference those `source_url` values in `images` (≤5 inventory photos).
 3. Only `kind=inventory` photos. Calibration photos do not exist in this design.
 
-**Status** comes from Settings key **`woo_create_status`** (`draft` | `publish`, default
-**`draft`**). Woo **safety policy** (UAT draft default, `SLAB-UAT-*` force draft even when
-Settings say publish, no edit-same-SKU, purge originals + processed images after successful
-publish) is owned by **AGENTS.md §5**. This file owns payload shape and publish sequence
-only. Do not diverge from AGENTS on force-draft. Do not conflate Woo create status with
-slab lifecycle status `published` (means Woo create succeeded locally).
+**Status** comes from Settings `woo_create_status` (`draft` or `publish`, default
+`draft`). Practice SKUs `SLAB-UAT-*` are always created as drafts, even if Settings
+say publish. Do not edit an existing SKU in this version. After a successful create,
+the server deletes the original and processed photos. A slab marked published in the
+app means the store create succeeded. That is not the same as WooCommerce "publish."
+The force-draft rule is in `AGENTS.md`. This file only owns the payload and the steps.
 
-### 2.5 Dedupe & idempotency (FR24a)
-Before create: `GET /products?sku={sku}` (any Woo status).
-- Found → `409 duplicate_sku` (v1 has no update path).
-- Not found → proceed. (Single-owner, slab-by-slab; check still required.)
+### 2.5 Duplicate SKU
+Before create: `GET /products?sku={sku}` (any store status).
+- Found: stop. The phone shows the SKU field with Edit SKU and Open existing listing. This version does not update the other product.
+- Not found: create. Still do the check every time.
 
-### 2.6 Post-submission recovery (409 / 422) and logging (FR28)
+### 2.6 After a failed publish
 
-Business-logic failures after the user taps publish map to **field-level recovery**
-on the review screen. No raw HTTP codes or stack traces in the UI. The draft stays
-on the phone across error-and-retry.
+The mill owner sees a message on the field, not a status number or a stack. The form stays on the phone. The server marks the slab failed so they can try again.
 
-| Class | When | UI recovery |
-|---|---|---|
-| **409 Conflict** | SKU already exists in Woo, any status | Inline on the **SKU** field. Copy names the conflict. Two paths: **edit SKU** and retry, or **open the existing listing** (store admin URL / product id). Never "update in place" of the other product in MVP. |
-| **422 Validation** | Stale or rejected value (category/attribute deleted since sync, price rule, etc.) | Inline on the **affected field**. Copy: value is no longer valid; show **current options** from the synced taxonomy cache (or re-pull if anchor advanced). |
+If the SKU already exists: under SKU, "This SKU already exists in the store (any status)." Edit SKU, or open the existing listing (admin link when we have it).
 
-Server still writes `sync_log` and sets slab `failed` with machine codes for pollers.
-Success path unchanged: set `woo_product_id`, local `published`, purge images.
+If a category, attribute, or price is no longer valid: under that field, "This value is no longer valid. Pick from the current list," with the current store options.
+
+The server still writes `sync_log`. Success still sets `woo_product_id`, marks published locally, and deletes photos.
 
 - **Partial-failure note** (risk, see IMPL-PLAN): if media uploads succeed but the
   final product POST fails, orphaned Woo attachments may exist. v1: log it; surface
@@ -193,30 +177,19 @@ Success path unchanged: set `woo_product_id`, local `published`, purge images.
 
 ## 3. End-to-end publish sequence (server side)
 ```
-1. validate via shared validation module (hash check on submit; see ARCHITECTURE §8)
-2. dedupe by SKU (GET /products?sku=, any status) → 409 duplicate_sku if exists
-3. (re)sync taxonomy if last_sync >1h; bump taxonomy_anchor only on stored-subset hash change
-4. resolve category/tags/attributes (Call 1 / manual + name-match; synced set only)
-5. upload processed PNG inventory images → media  → source_urls
-6. POST /products (status per AGENTS §5 + woo_create_status) → woo_product_id
-7. write sync_log(success), set slab published, purge originals + processed images
-   on failure: sync_log(failed), slab=failed, images retained; map 409/422 to fields (§2.6)
+1. check the listing against the shared rules (current copy of the rules on submit)
+2. look up the SKU in the store (any status). Stop if it already exists.
+3. refresh store lists if the last successful pull is older than 1 hour. Only bump the client list-version if something actually changed.
+4. resolve categories, tags, and attributes from the synced lists (vision names or typed names)
+5. upload processed PNG inventory photos to media, keep the URLs
+6. POST /products with draft/publish per Settings, always draft for SLAB-UAT-* SKUs
+7. on success: log, mark published locally, delete originals and processed photos
+   on failure: log, mark failed, keep photos, put the error on the field (§2.6)
 ```
 
-## 4. What is deterministic vs scoped-inference here
-- Deterministic: templates, all dimension text, category/tag/attribute resolution
-  against the Woo-synced cache only, payload assembly, dedupe, logging, title assembly.
-- Scoped inference: optional LLM prose generation for description only. The LLM
-  never touches dimensions and may only choose species/attributes present in the
-  synced taxonomy lists.
+## 4. What the model may and may not do
 
-## 4. Field-level Woo errors (presentation in `docs/UX.md`)
+Templates, numbers, matching names to store ids, payload, dedupe, logging: code.
+Generate text may write description prose only. It must not invent dimensions. It may only pick species and attributes that exist in the synced store lists.
 
-Wire shape: `{ field, code, message, actions[] }`. The phone never displays HTTP codes.
-
-- **409 duplicate SKU**: actions `edit_sku` | `open_existing`. Include Woo id + admin URL when GET-by-sku works; if lookup fails, keep `open_existing` (SKU + “open this SKU in Woo admin”). No in-place update of the other product.
-- **422 stale field**: current cache options after publish-time sync if #14 fired.
-- Draft: phone keeps the form; server slab → `failed` (retryable). No IndexedDB.
-- Module-stale hash is **412**, not 409.
-
-The shared validation module is `GET /api/v1/validation/module`. Hash check on submit only.
+How errors look on the phone is in `docs/UX.md`. The wire uses `{ field, code, message, actions[] }`. The mill owner never sees those codes. If the phone's copy of the rules is stale, refresh the copy and retry. That is not a duplicate-SKU conflict.

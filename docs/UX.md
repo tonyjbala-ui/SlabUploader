@@ -1,172 +1,144 @@
-# SlabUploader UX — POC interaction spec
+# How the phone app should feel
 
-Status: SPEC · 2026-09-01 · issue #10 (presentation) · functional rules in #9 / AGENTS  
-This is the UAT-facing interface contract. Wireframes are described as screens and states, not pixels. Implementers and testers use this file plus `AGENTS.md` and `docs/TECH-SPEC-PIPELINE.md`.
+This is the screen-by-screen description testers and builders use. It is not pixel mockups. Numbers and math live in `docs/TECH-SPEC-PIPELINE.md`. Hard product rules live in `AGENTS.md`. This file is what the mill owner sees.
 
-Functional numbers (0.7 threshold, empty vs prefill) live in AGENTS §6. This file only says how those rules look and feel.
+A suggestion from the vision model never beats a typed value. Empty is better than a confident-looking wrong species.
 
----
+## Before you can list
 
-## 0. Principles
+You cannot mark a slab ready until all of these are set:
 
-- One-handed phone, outdoor or mill-floor lighting, thumb reach.
-- The user always sees what is missing **on the field**, not only after Submit.
-- Manual values always beat inference. Empty is honest; fake prefill is not.
-- No raw HTTP codes or stack traces. Recovery stays on the same screen as the field.
+- exactly one species
+- at least one wood category
+- at least one figure (the store's figure list, including `fig-*` tags)
 
-Mandatory before **ready** (continue to publishable):
+The missing field is marked on the control itself, not only after you tap continue.
 
-- exactly **one species**
-- **at least one wood category**
-- **at least one figure** (`fig-*` or the Figure attribute — same locked set as DATA-MODEL)
+## First time you open the camera
 
-Issue #9 named species + ≥1 figure as the confidence-gate floor. Wood category is also required to list (original product). Presentation treats all three as mandatory with inline nudges (#10).
+A short overlay, once. You can dismiss it and "Don't show again." Settings can bring it back.
 
----
+1. Lay the slab on a green or black sheet.
+2. Shoot from above, lens parallel to the broad face.
+3. Put a tape along the long grain so *you* can type length in inches. The app does not read the tape.
+4. Take one to five photos. Confirm the cut around the wood before you trust square footage.
 
-## 1. First-run (calibration trick)
+This is photography advice, not computer vision of a ruler.
 
-Not OpenCV ruler detection (that path is deferred). First launch of capture shows a short overlay, dismissible, remembered in localStorage:
+## Capture: the mask is the measurement
 
-1. Lay the slab on a **green or black sheet**.
-2. Shoot **top-down**, lens parallel to the broad face.
-3. Put a tape or known length along the prevailing grain so *you* can type length in inches. The app does not read the tape.
-4. Take 1–5 photos. Confirm the mask before trusting numbers.
+The cut around the wood is the footprint. Length, the 6" width samples, square feet, and board feet all sit on that mask. A fat or clipped cut quietly moves every number.
 
-Skip control: “Don’t show again.” Reset lives in Settings, not on the capture chrome.
+### One screen
 
----
+The photo fills the screen. The mask overlay sits on the original photo (kept vs dropped), not only on a cropped PNG.
 
-## 2. Capture — mask is the load-bearing step
+Four knobs sit next to the preview. You do not leave this screen for Settings to tune the cut:
 
-Background removal defines the pixel footprint. Length, widths, sqft, and bdft all sit on that mask. A clipped or fat mask silently moves the bounding rectangle and the 6" width samples.
+- Sheet: auto, green, or black
+- Sensitivity
+- Edge offset
+- Feather
 
-### Layout (one screen)
+Confirm the edge. Then confirm the length axis (rotate if it is skewed). Then type length, thickness, and SKU.
 
-- Full-bleed photo with **mask overlay** on the original (included vs excluded), not only the cropped PNG.
-- Four knobs **on this screen**, next to the preview — never a trip to Settings:
-  - Sheet: auto / green / black
-  - Sensitivity
-  - Edge offset
-  - Feather
-- Confirm edge. Then length-axis overlay (rotate / confirm). Then length, thickness, SKU.
-- Retake photo. POC does **not** show “Try harder” (server U2Net). That control is deferred, not deleted — do not remove it from architecture docs.
+Retake if the photo is bad. This first listing does not show a "Try harder" server matting button. Keep that path in the architecture docs; do not ship it here.
 
 ### Live re-run
 
-Changing any knob re-runs client background removal on the current photo and refreshes the overlay immediately. No save button for knobs. No server round trip for mask tuning in POC.
+Move a knob and the overlay updates on this photo immediately. No save. No trip to the server for mask tuning.
 
-### Empty / error states (capture)
+### What you see when it fails
 
-| Situation | What the user sees |
+| Situation | On screen |
 |---|---|
-| Sheet color not auto-detected | Prompt: pick green or black. Stay on this screen. |
-| Mask not one contiguous slab | Banner on the photo: “Cut is broken — retake or tighten the sliders.” Confirm stays disabled. |
-| Axis looks wrong | Rotate control; if still wrong, retake. |
-| After crop, shorter side would be &lt; 1600px | Warn: this photo cannot list until retake. No fake upscale. |
-| User tries to continue without confirming mask | Confirm is the gate; Continue is disabled until confirm. |
+| Sheet color not obvious | Pick green or black. Stay here. |
+| Cut is broken into pieces | "Cut is broken. Retake or tighten the sliders." Confirm stays off. |
+| Length axis looks wrong | Rotate. If it is still wrong, retake. |
+| After crop, the short side would be under 1600 pixels | This photo cannot list until you retake. The app will not invent pixels. |
+| Continue without confirming the cut | Continue stays off until you confirm. |
 
-Knobs persist in localStorage (reset-to-default in Settings). They are not server secrets.
+Knob values stay on the phone (reset in Settings). They are not store secrets.
 
----
+## Review
 
-## 3. Review screen
+After the draft is uploaded. If vision is on, a species pass may have run.
 
-After calibrated upload (and Call 1 if inference is on).
+### How fields fill
 
-### Field rendering
+The default bar is 0.7. There is no slider for it in this app.
 
-| Call 1 confidence | Species, wood categories, edge, figure, grade, feat-* |
-|---|---|
-| **≥ 0.7** (default; configurable in server settings later, not a POC slider) | Prefill from Call 1. Every value is editable. Show a quiet “suggested” affordance, not a lock. |
-| **&lt; 0.7** | Leave **empty**. Do not stash the low-confidence guess in a hidden field. |
-| Inference OFF | Empty; user fills by hand. Same mandatory set. |
+If the model is at least that sure, it fills species, wood categories, edge, figure, grade, and feature tags. Every filled value is still editable. A quiet "suggested" mark is enough. Do not lock the field.
 
-Pickers for species, wood category, and figure list **only** Woo-synced leaves. No “other”, no hardcoded mill list. A species that appeared in Woo after last sync is invisible until the next successful sync.
+If it is less sure, leave those fields empty. Do not hide the guess in a secret field.
 
-Price: recommendation from species $/bdft × bdft when a rate exists; otherwise empty. Override always allowed.
+If vision is off, the fields start empty. Same required set. You fill them by hand.
 
-Title / description: empty until the user taps **Generate text** (Call 2) or types. Call 2 never auto-runs.
+Species, wood category, and figure lists are only what we last pulled from the store. No "other." No mill list baked into the app. A species added in WooCommerce after the last sync does not appear until the next successful sync.
 
-### Per-field nudges (not submit-only)
+Price: if this species has a $/board-foot rate, show `rate × board feet`. You can always override. If there is no rate, leave price empty.
 
-While a mandatory field is empty, that control shows an inline state (mark + short line under the field):
+Title and description start empty until you type or tap Generate text. Generate text never runs on its own.
 
-- Species: “Pick the species from the store list.”
-- Wood category: “Pick at least one wood category.”
-- Figure: “Pick at least one figure.”
+### Nudges on the field
 
-Nudges appear as soon as the screen loads with empties, and clear when the field is valid. Submit/Continue to ready stays disabled while any of the three is empty — **and** the user can still see which one without scrolling to a toast after tap.
+Empty required fields show a line under the control as soon as the screen opens:
 
-Do not use a single post-submit modal as the only signal.
+- Species: "Pick the species from the store list."
+- Wood category: "Pick at least one wood category."
+- Figure: "Pick at least one figure."
+
+The line goes away when the field is valid. Continue stays off while any of the three is empty. You should not have to tap continue to find out which one.
 
 ### Overrides
 
-Changing a prefilled species/figure is a normal edit. No confirm dialog. Manual value is what publishes.
+Change a suggested species or figure like any other edit. No extra confirm. What you leave in the field is what goes to the store.
 
----
+## Settings (what the mill owner touches)
 
-## 4. Settings (relevant bits)
-
-- **Store URL**: read-only text from `WOO_BASE_URL` (compose). Not an input.
-- Woo username + application password: inputs. Password never round-trips on GET.
-- Inference endpoint + key + model; enable flags.
-- Species $/bdft table (seeded from synced species only).
-- `woo_create_status` draft | publish.
+- Store URL: text only, from deploy. Not an input.
+- WordPress username and application password. The password never comes back on load.
+- Vision endpoint, key, model, on/off.
+- Species $/board-foot table, filled from synced species only.
+- New listings: draft or published. Default draft.
 - Reset capture knobs to factory.
-- Manual “Refresh taxonomy” is optional for POC; test-connection always syncs.
+- Refresh store lists is optional. Testing the store connection always refreshes them.
 
----
+## Typing checks
 
-## 5. Validation (field exit and submit)
+Rules live on the server. The phone keeps a copy. The copy is checked when you submit, not on every tap.
 
-Shared module on FastAPI (`docs/OPENAPI.md`). Client caches it; hash checked **on submit**, not on every blur.
+Leaving a field: the phone checks the copy. Required empty fields block. Optional empty is fine. Optional with text must pass.
 
-- Blur: local check with cached rules. Required fields block; optional empty is valid; optional with content must pass.
-- Length: hard cap at the Woo limit (cannot type past it).
-- Character set: SKU `[A-Z0-9-]{3,24}`; title/description UTF-8 within Woo max. Invalid characters rejected on exit. Not “extended ASCII”.
-- Submit: full pass + hash check. Mismatch → “Updating rules” (HTTP 412, never shown) → re-validate → retry. No data loss.
+Length: you cannot type past the store's max.
 
-Presentation: errors sit under the field. No top-of-screen dump for field problems.
+SKU: letters A–Z, digits, hyphen, 3 to 24 characters. Title and description: normal text, store length limits. Bad characters fail when you leave the field.
 
----
+Submit: full check plus "is my copy of the rules still current?" If not, the phone shows "Updating rules," fetches the new copy, checks again, and retries. You do not lose the form. Do not show a status number.
 
-## 6. Publish errors (after commit)
+Errors sit under the field. Not a pile at the top of the screen.
 
-The phone keeps the form. The server slab goes `failed` (retryable). No IndexedDB.
+## After you tap publish
 
-**409 duplicate SKU** — inline on SKU:
+The form stays on the phone. The server marks the slab failed so you can try again. Nothing is stored in a special offline database.
 
-- “This SKU already exists in the store (any status).”
-- Actions: **Edit SKU** (focus the field) · **Open existing listing** (required). Use the admin URL/id when the server returned them; otherwise keep the button and “look this SKU up in Woo admin”.
-- Never show `409` as the message.
+**This SKU already exists** (any status in the store). Message under SKU: "This SKU already exists in the store (any status)." Two actions: Edit SKU (focus the field), and Open existing listing. If we have the admin link, use it. If not, keep the button and tell them to look the SKU up in store admin. Never print "409".
 
-**422 stale value** — inline on the field Woo rejected (category, attribute, price, …):
+**This value is no longer valid** (category, attribute, price, and the like). Message under that field: "This value is no longer valid. Pick from the current list." Show the current store options after the submit-time refresh. Never print "422".
 
-- “This value is no longer valid. Pick from the current list.”
-- Options from the synced cache after the submission-time refresh.
-- Never show `422` as the message.
+If the store is down, times out, or auth fails: one banner, "Couldn't reach the store. Try again." Form intact. Not a field nudge.
 
-Server 5xx / timeout / auth: one recoverable banner (“Couldn’t reach the store — try again”), draft intact. Not a field nudge.
+## Checks a tester can run
 
----
+1. First-run overlay shows once. Skip stays skipped.
+2. Capture knobs are on the photo. Each slider redraws the overlay on that photo.
+3. Confirm stays off until the cut is one piece.
+4. Vision on and sure: fields filled, still editable.
+5. Vision unsure: species, wood category, and figure empty, with lines under them. Cannot mark ready until all three are set.
+6. Species list is only synced names. You cannot type a name that is not there.
+7. Duplicate SKU: message under SKU, two actions, no status number.
+8. Stale category: message under that field, current options.
 
-## 7. UAT can write cases against
+## Not this pass
 
-1. First-run overlay appears once; skip persists.
-2. Knobs on capture; each slider live-reruns mask overlay on the source photo.
-3. Confirm disabled until mask is contiguous.
-4. Review with inference ON and confidence ≥ 0.7: fields filled, editable.
-5. Review with confidence &lt; 0.7: species/wood category/figure empty; inline nudges; cannot mark ready until all three satisfied.
-6. Species picker contains only synced names; typing a non-synced name is impossible.
-7. Duplicate SKU: inline SKU recovery, two actions, no raw code.
-8. Stale category after sync: 422 copy on that field with current options.
-
----
-
-## 8. Non-goals (this spec)
-
-- Visual branding, type scale, color tokens.
-- Server U2Net “Try harder” control (deferred).
-- Configurable 0.7 slider in the UI.
-- Offline / airplane-mode chrome.
+Brand colors and type. Server "Try harder" matting. A slider for the 0.7 bar. Airplane-mode capture.

@@ -1,58 +1,54 @@
 # SlabUploader
 
-Mobile-first, self-hosted app for publishing one-of-a-one wood slabs to WooCommerce.
-Phone capture (online) → hybrid measure/crop on device → review → WooCommerce create.
+Phone app for listing one-of-a-one wood slabs on the Whidbey Wood Store.
 
-Owner: Ty (Whidbey). Store: www.whidbeywoodstore.com. Deploy: Docker Compose + Caddy on an inventoried host (`APP_HOSTNAME`).
+You photograph a slab, confirm the cut and the numbers on the phone, review the listing, and create the WooCommerce product. The phone does the measuring and crop. The server stores the draft, talks to the store, and (later) runs vision.
 
-## Status
+Owner: Ty (Whidbey). Store: www.whidbeywoodstore.com. Runs in Docker Compose behind Caddy on a host you inventory first (`APP_HOSTNAME`).
 
-**Gate A freeze signed 2026-08-31.** Docs refactor on branch `docs/refactor-v2` (2026-09-01).
-Read `AGENTS.md` before any implementation. TECH-SPEC + ARCHITECTURE + AGENTS beat archived PRD lines.
+## Where we are
 
-POC bar: phone → customer-ready listing on the real store; UAT creates as **Woo draft**
-with `SLAB-UAT-*` SKUs; one real SKU **Woo publish** after Ty review. Online-only for POC
-(offline deferred). Build plan: `docs/IMPL-PLAN.md` (Phase 0 = hybrid Gates A+B; Gate C =
-early Phase 1 first draft listing).
+Docs freeze signed 2026-08-31. The current docs branch is `docs/refactor-v2`. Read `AGENTS.md` before writing code. If an old PRD line fights TECH-SPEC, ARCHITECTURE, or AGENTS, ignore the PRD. The old PRD is in `docs/archive/`.
+
+The bar for this first version: a real slab, photographed on a phone, listed on the real store. Practice listings are WooCommerce **drafts** with SKUs that start `SLAB-UAT-`. After Ty looks, one real SKU goes **live**. Online only for now. Offline capture waits.
+
+Build order is in `docs/IMPL-PLAN.md`. Empty app on the real host first, then the first draft listing, then vision.
 
 ## Documentation
 
 | File | What |
 |---|---|
-| `AGENTS.md` | Working contract + hard rules (read first) |
-| `docs/ARCHITECTURE.md` | Hybrid client/server split, data flow |
-| `docs/TECH-SPEC-PIPELINE.md` | Deterministic math + image pipeline, constants, test vectors |
-| `docs/DATA-MODEL.md` | SQLite schema + slab status state machine |
-| `docs/OPENAPI.md` | Client↔server API contract |
-| `docs/CONTENT-WOO.md` | Content templates + WooCommerce payload/integration |
-| `docs/PROMPTS.md` | Vision + content prompts (server files) |
-| `docs/DEPLOYMENT.md` | Env-agnostic compose, Caddy, backup/restore |
-| `deploy/INVENTORY.md` | Host inventory worksheet (Gate B) |
-| `docs/UX.md` | POC interaction spec (review, capture knobs, errors, first-run) |
-| `docs/IMPL-PLAN.md` | Phased build plan with acceptance criteria + exit gates |
-| `docs/archive/PRD-2026-08.txt` | Frozen historical PRD only (not a source for new work) |
+| `AGENTS.md` | Hard rules. Read first. |
+| `docs/ARCHITECTURE.md` | What runs on the phone vs the server |
+| `docs/TECH-SPEC-PIPELINE.md` | Math, image pipeline, test vectors |
+| `docs/DATA-MODEL.md` | SQLite tables and slab statuses |
+| `docs/OPENAPI.md` | Phone to server API |
+| `docs/CONTENT-WOO.md` | Titles, descriptions, store payload |
+| `docs/PROMPTS.md` | Vision and copy prompts (server files) |
+| `docs/DEPLOYMENT.md` | Compose, Caddy, backup |
+| `deploy/INVENTORY.md` | Host worksheet before you bind ports |
+| `docs/UX.md` | What the mill owner sees on the phone |
+| `docs/IMPL-PLAN.md` | Phases and exit gates |
+| `docs/archive/PRD-2026-08.txt` | Frozen history. Not a source for new work. |
 
-## Quick orientation
+## Short map
 
-Hard locks live in `AGENTS.md`. Short map:
+- Phone: mask knobs, square feet, board feet, 3:4 PNG. Server: store, WooCommerce, vision proxy. Server matting ("Try harder") is not in this first listing.
+- Board feet = square feet × thickness in inches. No divide-by-12. Test vectors TV-1 through TV-10 run on the phone.
+- Secrets never sit in the browser. Encrypted on the server. Store login is a WordPress application password on a low-privilege user, not WooCommerce consumer keys.
+- Practice SKUs `SLAB-UAT-*` are always drafts, even if Settings say publish.
+- Vision stays off until the first draft listing works. Species suggestion and Generate text come after that, still in this project.
+- Two containers (`frontend`, `fastapi`) plus Caddy. One SQLite, image volumes.
+- Not in v1: versioning, staff roles, bulk publish, analytics, editing an existing SKU.
 
-- **Hybrid:** phone owns mask knobs / sqft / bdft / 3:4 PNG; server stores, Woo, inference proxy. U2Net “Try harder” deferred from POC.
-- **bdft** = sqft × thickness_in (no `/12`). TV-1 through TV-10 on the client.
-- **Secrets** never in browser; AES-GCM on server; `SLAB_AES_KEY` env only. Woo auth = WP application password (dedicated low-priv user), not consumer keys.
-- **Woo UAT:** draft default; `SLAB-UAT-*` force draft (AGENTS §5).
-- **Inference OFF** until Gate C; Call 1/2 after, still inside POC.
-- **Online-only for POC** (offline PWA deferred).
-- **Two containers** (`frontend`, `fastapi`) + Caddy. Single SQLite + image volumes.
-- **v1 non-goals:** no versioning, no staff/roles, no bulk publish, no analytics, no SKU update path.
+## Repo
 
-## Repo remotes
+Source of truth: Gitea `Ty_Tech/SlabUploader` on gitea-atd
+(`https://gitea.vps1.afterthedemo.com/Ty_Tech/SlabUploader`). TrueNAS and GitHub copies are not the source of truth for this work.
 
-- Canonical SoT: Gitea `Ty_Tech/SlabUploader` on **gitea-atd** (`https://gitea.vps1.afterthedemo.com/Ty_Tech/SlabUploader`)
-- Optional later mirrors: `gitea-truenas`, GitHub — not SoT for this workstream
+## Getting started
 
-## Getting started (implementer)
-
-1. Read `AGENTS.md` (hard rules) and Phase 0 in `docs/IMPL-PLAN.md`.
-2. Start at Phase 0 — hybrid client TECH-SPEC modules + thin FastAPI health/settings (not a server happy-path pipeline).
-3. Do not skip exit gates; Ty signs each phase via the delivery process.
+1. Read `AGENTS.md` and Phase 0 in `docs/IMPL-PLAN.md`.
+2. Build the phone math modules and a thin FastAPI health/settings app. Do not put measuring on the server.
+3. Ty signs each phase. Do not skip that.
 4. Do not implement from `docs/archive/PRD-2026-08.txt`.
