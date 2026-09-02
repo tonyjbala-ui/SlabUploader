@@ -72,7 +72,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 Caddy site block: `deploy/Caddyfile.fragment` (merge into host Caddy). Compose
 service names `frontend` and `fastapi` must match that fragment.
 
-**`WOO_BASE_URL` (issue #11 — plan of record):**
+**Store URL (`WOO_BASE_URL`):**
 
 - Set in `deploy/.env` and injected into the FastAPI container at start.
 - **HTTPS only.** FastAPI must refuse missing / `http://` values at startup.
@@ -80,7 +80,7 @@ service names `frontend` and `fastapi` must match that fragment.
 - Settings UI shows the URL as **read-only** text (which store this deploy hits).
 - Change store = edit `.env` + recreate the fastapi container.
 
-Woo Application Password stays out of compose (AES-GCM via Settings; issue #5).
+Woo Application Password stays out of compose. Enter it in Settings; FastAPI stores it AES-GCM encrypted.
 
 Conventions (house rules):
 
