@@ -18,6 +18,24 @@ Inference, Woo payload, API, and schema live in other docs.
 4. **Units** — inches in 1/8" steps; sqft and bdft to 2 decimals; price half-up to 2 decimals. Those rounded values are what get stored. No sqin in the UI, tests, or product copy.
 5. **Client is authoritative** — all deterministic processing runs in the browser. The server stores the numbers and files the client sends, and handles Woo sync.
 
+
+## 1b. Browser compatibility floor
+
+Client processing runs in the browser on phones and PCs. Ty lock 2026-09-06 PT: the
+compatibility matrix includes PC browsers; this is not a mobile-only app.
+
+Supported families:
+- Phone: iOS Safari, Android Chrome
+- PC: desktop Chrome, desktop Edge, desktop Firefox (Windows and macOS at minimum)
+
+Exact minimum version pins remain issue #4. Unsupported clients get a hard-stop message with an
+update / switch link. No polyfill strategy in POC.
+
+Load-bearing client APIs for the deterministic path include canvas (or OffscreenCanvas where used)
+for mask overlay and knob re-run, image decode/crop/encode for 3:4 transparent PNG prep, and
+standard fetch to the app API. Do not depend on APIs outside this inventory without updating this
+section.
+
 ## 2. Units and rounding
 
 | Quantity | Source | Stored / displayed |

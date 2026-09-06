@@ -181,6 +181,9 @@ provide `python -m app.security.rekey NEW_KEY` (reads old key from env
 5. Publish test slab with SKU `SLAB-UAT-…` → slab may show local `published`; Woo product must be **draft**
 6. Leave or delete the Woo draft UAT product (never customer-visible). Final live publish is a non-UAT SKU after Ty review.
 
+For the full human-run walk (host check → App Password → one `SLAB-UAT-*` prove → confirm →
+cleanup), see `docs/UAT-PRACTICE.md`.
+
 ## 9. Scaling path (not v1)
 
 - Postgres when SQLite write contention appears (schema already portable).

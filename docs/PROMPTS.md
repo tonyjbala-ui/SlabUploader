@@ -102,11 +102,12 @@ Return valid JSON matching this schema:
     user may clear or change it).
   - Field confidence **< threshold** → leave empty. Do not show the model's
     low-confidence guess as a default.
-  - Before the slab can leave review toward ready/publishable, the user must
-    have **species** and **≥1 figure attribute** set (manually if Call 1 left
-    them empty), plus the rest of the mandatory ready set.
+  - Call 1 does not define the ready gate. Species + figure (or any vision
+    subset) is assist/prefill only. Ready is the **full named set** in AGENTS §7
+    / DATA-MODEL (filled manually if Call 1 left fields empty). Species + one
+    figure is not enough.
 - Manual entry always wins. Call 1 is assist-only and does not gate publish.
-  Full suite must pass with inference OFF. Canonical lock: AGENTS §6.
+  Full suite must pass with inference OFF. Canonical lock: AGENTS §6–7.
 
 ---
 

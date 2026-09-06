@@ -1,0 +1,14 @@
+Grok headless sessions for this folder
+(copy a line below, then Ctrl+V into the Grok TUI)
+
+Overnight execute (docs refactor v2 commits):
+01a05b6c-5ad4-7110-a706-215faa1c94ed
+
+Interrogate (multi-model review):
+01a05b57-e790-7dc3-a8f2-671f15152ee3
+
+How + architect (first proposal):
+01a05b3f-dfe2-79c0-b36a-c43320ebdd04
+
+Resume from a second terminal on this computer:
+grok --resume 01a05b6c-5ad4-7110-a706-215faa1c94ed --cwd /workspace/gitea-atd/Ty_Tech/SlabUploader

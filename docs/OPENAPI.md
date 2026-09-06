@@ -156,7 +156,7 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 - `PUT /api/v1/slabs/{id}` — Update draft fields. Body: partial `SlabCreate` (any subset of editable fields + `client_rev`).
   - Server **stores** client-sent derived fields (`sqft`, `bdft`, widths). It may validate shape and ranges. It must **not** recompute mask, sqft, bdft, or widths as source of truth. Client re-runs TECH-SPEC math and PUTs the new numbers.
   - `409 revision_conflict`.
-  - `409 duplicate_sku` → `{ "field":"sku", "code":"duplicate_sku", "message":"...", "actions":["edit_sku","open_existing"], "woo_product_id": "...?", "woo_admin_url": "...?" }`. `open_existing` is required even if lookup failed (then omit id/url). UI: `docs/UX.md`. Never show the code.
+  - `409 duplicate_sku` → `{ "field":"sku", "code":"duplicate_sku", "message":"...", "actions":["edit_sku","open_existing"], "woo_product_id": "...?", "woo_admin_url": "...?" }`. `open_existing` is required even if lookup failed (then omit id/url). Never show the code. Presentation: `docs/UX.md`.
   - `422` stale/invalid field → `{ "field":"species_id", "code":"stale_field", "message":"...", "actions":[], "options": [...] }` after a submission-time taxonomy refresh. Draft: phone form + server slab `failed` (retryable).
   - `412` validation module stale → `{ "code":"validation_module_stale", "module": { "hash":"...", "rules":[] } }`. Not a 409.
 - `DELETE /api/v1/slabs/{id}` → `204`. Soft: only unpublished drafts. Published slabs cannot be deleted from the app.

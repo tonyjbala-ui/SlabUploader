@@ -103,7 +103,7 @@ If it is less sure, those fields stay empty. That empty-start subset is not
 the submit list. Review will not continue until the full ready set is filled:
 SKU, length, thickness, price, species, wood category, edge type, figure,
 grade, thickness band, moisture, fig-* tags, and inventory PNG(s). Species
-plus one figure is not enough. How that looks on the phone: `docs/UX.md`.
+plus one figure is not enough. Presentation: `docs/UX.md`.
 Do not fill a low-confidence guess.
 
 Names from vision or from typing match store ids case-insensitive, trimmed. No
@@ -195,4 +195,4 @@ The server still writes `sync_log`. Success still sets `woo_product_id`, marks p
 Templates, numbers, matching names to store ids, payload, dedupe, logging: code.
 Generate text may write description prose only. It must not invent dimensions. It may only pick species and attributes that exist in the synced store lists.
 
-How errors look on the phone is in `docs/UX.md`. The wire uses `{ field, code, message, actions[] }`. The mill owner never sees those codes. If the phone's copy of the rules is stale, refresh the copy and retry. That is not a duplicate-SKU conflict.
+Presentation: `docs/UX.md`. The wire uses `{ field, code, message, actions[] }`. The mill owner never sees those codes. If the phone's copy of the rules is stale, refresh the copy and retry. That is not a duplicate-SKU conflict.

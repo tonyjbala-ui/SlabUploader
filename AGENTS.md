@@ -13,7 +13,7 @@ When docs disagree, use this order:
 1. **`docs/TECH-SPEC-PIPELINE.md`** — deterministic math, image prep, constants, test vectors
 2. **`docs/ARCHITECTURE.md`** — hybrid topology, what-runs-where, secrets why, status machine
 3. This **`AGENTS.md`** — hard rules for agents (verbatim locks below)
-4. **`docs/DATA-MODEL.md`**, **`docs/OPENAPI.md`**, **`docs/CONTENT-WOO.md`**, **`docs/PROMPTS.md`**, **`docs/DEPLOYMENT.md`**, **`docs/UX.md`** (presentation; functional gates stay in this file)
+4. **`docs/DATA-MODEL.md`**, **`docs/OPENAPI.md`**, **`docs/CONTENT-WOO.md`**, **`docs/PROMPTS.md`**, **`docs/DEPLOYMENT.md`**. Presentation: `docs/UX.md` (full rewrite landed 2026-09-02, same day as the deletion). Functional gates stay in this file.
 5. **`docs/IMPL-PLAN.md`** — hybrid-aligned Phases 0–6. Phase 2 is a deferred stub only (offline PWA / OCR / ruler). Do not implement deferred stubs or any server happy-path measure/crop as SoT.
 6. **`README.md`** — orientation only
 7. **`docs/archive/PRD-2026-08.txt`** — frozen archive only. Not a source for new work.
@@ -32,7 +32,7 @@ Archived PRD lines that conflict with the files above are non-authoritative (see
 
 ### Open doc defects
 
-Landed on `docs/refactor-v2`: #5 Application Passwords, #8 Call 1 prefill, #9 confidence gate, #11 `WOO_BASE_URL`, #10 UX spec (`docs/UX.md`), #12 synced-species-only, #15 inline mask knobs (U2Net deferred), #14 taxonomy manufactured last-modified, #2 portable Call1→Call2, #17 shared validation module, #18 409/422 field recovery. Grok Build owns remaining OPENAPI #3 wording if still open.
+Landed on `docs/refactor-v2`: #5 Application Passwords, #8 Call 1 prefill, #9 confidence gate, #11 `WOO_BASE_URL`, #12 synced-species-only, #15 inline mask knobs (U2Net deferred), #14 taxonomy manufactured last-modified, #2 portable Call1→Call2, #17 shared validation module, #18 409/422 field recovery. **#10 UX spec:** rewritten 2026-09-02; Ty signed the walk 2026-09-06 PT with one amendment (PC browsers in the compatibility matrix). Presentation: `docs/UX.md`. The pre-deletion file is history, not a source. **#4** browser floor: phone + PC families locked; exact minimum version pins and API inventory depth still open. OPENAPI #3 wording already landed if the body still looks open.
 
 ---
 

@@ -26,8 +26,8 @@ Build order is in `docs/IMPL-PLAN.md`. Empty app on the real host first, then th
 | `docs/CONTENT-WOO.md` | Titles, descriptions, store payload |
 | `docs/PROMPTS.md` | Vision and copy prompts (server files) |
 | `docs/DEPLOYMENT.md` | Compose, Caddy, backup |
+| `docs/UAT-PRACTICE.md` | Walkable practice UAT: host check → App Password → one `SLAB-UAT-*` prove |
 | `deploy/INVENTORY.md` | Host worksheet before you bind ports |
-| `docs/UX.md` | What the mill owner sees on the phone |
 | `docs/IMPL-PLAN.md` | Phases and exit gates |
 | `docs/archive/PRD-2026-08.txt` | Frozen history. Not a source for new work. |
 

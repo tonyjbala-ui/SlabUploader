@@ -46,7 +46,7 @@ Scope — out:
 
 - Server happy-path pipeline / CLI that recomputes mask/crop/bdft as SoT.
 - Real U2Net (stub OK; on-demand later).
-- Woo create/publish, live taxonomy sync (mock/seed species list OK later).
+- Woo create/publish and live taxonomy sync (Phase 1). Species offered in UI, pricing seeds, and Call 1 are **exactly** Woo-synced species-category leaves (CONTENT-WOO §2.2 / AGENTS §6 / DATA-MODEL `woo_categories`). No mock, seed, hardcoded, or fallback species list in this phase or later.
 - Inference Call 1/2, LoRA.
 - Offline PWA, IndexedDB sync, OCR, ruler.
 - Fake upscale / inventing pixels.
@@ -169,9 +169,14 @@ Deliverables:
   re-crop UI as SoT.
 - Inference UI (only meaningful after Gate C and when `inference_enabled`): Call 1
   results with confidence. **≥ 0.7** (configurable default) → pre-fill mutable
-  fields. **< 0.7** → leave empty; inline nudges; block continue until exactly
-  one species, ≥1 wood category, and ≥1 figure (`docs/UX.md`). "Generate text"
-  triggers Call 2; never auto.
+  fields. **< 0.7** → leave empty; inline nudges. Continue/ready is blocked until
+  the **full ready set** is filled — not species + wood category + figure alone.
+  Canonical lock (AGENTS §7 / DATA-MODEL slabs **ready**): SKU, length, thickness,
+  client sqft/bdft/widths, ≥1 inventory PNG, exactly one species, ≥1 wood category,
+  1 edge type, ≥1 figure term, ≥1 fig-* tag, ≥1 grade, thickness store band
+  (round-up), 1 moisture (default kiln-dried; not inferred), price. feat-* 0+.
+  Title/description may be typed, generated, or templated at publish. Presentation:
+  `docs/UX.md`. "Generate text" triggers Call 2; never auto.
 - Capture: four knobs on the mask screen with live re-run. No U2Net control in POC.
 - Publish button (online-only), poll `publishing` → `published` | `failed`, surface
   error detail from sync_log.
@@ -243,9 +248,14 @@ Deliverables:
   taxonomy **from the Woo cache only**; confidence threshold **0.7** (configurable
   default; not a POC Settings slider). Auto-run on calibrated create only if
   `inference_enabled`. Not top-down-only.
-- Apply AGENTS §6 gate: ≥ threshold → pre-fill mutable species/categories/attributes/
-  tags; < threshold → empty fields + review gate requiring species + wood category
-  + figure before ready (`docs/UX.md`).
+- Apply AGENTS §6 prefill: ≥ threshold → pre-fill mutable species/categories/attributes/
+  tags; < threshold → those fields stay empty. Call 1 is assist only and does not
+  define ready. Ready/publish requires the **full ready set** in AGENTS §7 /
+  DATA-MODEL (SKU, length, thickness, client sqft/bdft/widths, ≥1 inventory PNG,
+  exactly one species, ≥1 wood category, 1 edge type, ≥1 figure term, ≥1 fig-* tag,
+  ≥1 grade, thickness store band round-up, 1 moisture default kiln-dried not
+  inferred, price; feat-* 0+). Species + wood category + figure is not the gate.
+  Presentation: `docs/UX.md`.
 - Call 2 (text) proxy: never auto. Portable Call 1 context (full resend default).
   LLM prose only; templates inject deterministic numbers. See `docs/PROMPTS.md`.
 - `test-inference` endpoint (vision + portable vs stateful probe). Fail closed if
@@ -257,8 +267,9 @@ Acceptance:
 
 - Local vision model configured: ≥ 0.7 fields pre-fill and remain editable; user
   override sticks.
-- Below 0.7: fields stay empty; UI blocks continue/ready until exactly one
-  species, ≥1 wood category, and ≥1 figure are set manually (asserted).
+- Below 0.7: fields stay empty; UI blocks continue/ready until the full AGENTS §7
+  / DATA-MODEL ready set is filled (asserted). Species + wood category + figure
+  is not the ready definition.
 - No doc/code path auto-fills below-threshold guesses or treats inference as a
   publish gate.
 - Inference OFF: app works end-to-end; tests assert zero calls to the inference endpoint.
@@ -287,7 +298,7 @@ Deliverables:
 
 Acceptance (measured):
 
-- E2E capture→publish on iPhone and Android browsers works (online).
+- E2E capture→publish on iPhone, Android, and PC browsers (desktop Chrome/Edge/Firefox) works (online).
 - Manual length override recalculates widths/sqft/bdft correctly (UAT asserts).
 - Client crop: slab ~80% frame in ≥95% of UAT photos; shorter side ≥1600 when source allows.
 - Woo product created with processed PNG images + correct taxonomy.

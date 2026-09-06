@@ -163,7 +163,7 @@ any → failed (with error)
    Values can come from Call 1 (≥ 0.7 pre-fill the user kept), manual entry, or a mix.
    **Review gate:** below-threshold Call 1 leaves species, wood category, figure,
    edge, grade, and feat-* empty. That subset is not the submit list. Inline nudges
-   on every still-required control, not submit-only (`docs/UX.md`). Inference is
+   on every still-required control, not submit-only. Presentation: `docs/UX.md`. Inference is
    optional; with inference OFF the user fills everything by hand.
 4. **publishing** — Woo create in flight. Poll for result.
 5. **published** — Woo product created, woo_product_id stored. Images purged.
@@ -227,4 +227,4 @@ Providers differ. Default portable path: **resend the full Call 1 turn** (prompt
 
 Per-slab thread on the **server** (client does not hold provider IDs). Best-effort delete on publish / abandon / fail; log and continue.
 
-Presentation of the review screen: `docs/UX.md`.
+Presentation: `docs/UX.md`.
