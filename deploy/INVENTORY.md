@@ -14,7 +14,7 @@ Do not assume a prior lab IP or hostname. See `docs/DEPLOYMENT.md`.
 | `APP_HOSTNAME` (HTTPS site name, e.g. `slab.example.local`) | `slab.local` (LAN-first; Pi-hole or hosts → `192.168.1.202`) |
 | OS / Docker version | Ubuntu 26.04.1 LTS; Docker 29.8.0; Compose v5.5.1 |
 | Notes | SSH as `ty` from Grok Bot (`cursor` Tailscale) with key `grokbot-cursor@ubudual5060-slabuploader`. User `ty` is in `docker` group. Disk ~15G free of 172G (92% used) — watch volume growth. Gitea is code SoT only; runtime is this host. |
-| `WOO_BASE_URL` (`https://` store; not editable in app) | **TBD — Ty to provide** (`https://` only) |
+| `WOO_BASE_URL` (`https://` store; not editable in app) | `https://www.whidbeywoodstore.com` (practice drafts via `SLAB-UAT-*`) |
 
 ## Ports and collisions
 
@@ -64,6 +64,6 @@ Do not assume a prior lab IP or hostname. See `docs/DEPLOYMENT.md`.
 
 | Role | Name | Date |
 |---|---|---|
-| Inventory draft (SSH + ports) | Main Cut | 2026-09-06 PT |
+| Inventory draft (SSH + ports + hostname + store) | Main Cut | 2026-09-06 PT |
 | Inventory complete | | |
 | Ty Gate B (optional) | | |
