@@ -11,7 +11,7 @@ Do not assume a prior lab IP or hostname. See `docs/DEPLOYMENT.md`.
 | Operator | Ty / Main Cut (SSH from cursor Tailscale node) |
 | Machine name / role | ubuDual5060 — practice / UAT app host (locked) |
 | `APP_HOST` (LAN or Tailscale IP/name used in DNS) | Tailscale preferred: `100.64.0.9` (`ubudual5060`). LAN also: `192.168.1.202` |
-| `APP_HOSTNAME` (HTTPS site name, e.g. `slab.example.local`) | **TBD — Ty to pick** (proposal: `slab.ubudual5060` or MagicDNS name) |
+| `APP_HOSTNAME` (HTTPS site name, e.g. `slab.example.local`) | `slab.local` (LAN-first; Pi-hole or hosts → `192.168.1.202`) |
 | OS / Docker version | Ubuntu 26.04.1 LTS; Docker 29.8.0; Compose v5.5.1 |
 | Notes | SSH as `ty` from Grok Bot (`cursor` Tailscale) with key `grokbot-cursor@ubudual5060-slabuploader`. User `ty` is in `docker` group. Disk ~15G free of 172G (92% used) — watch volume growth. Gitea is code SoT only; runtime is this host. |
 | `WOO_BASE_URL` (`https://` store; not editable in app) | **TBD — Ty to provide** (`https://` only) |
@@ -39,8 +39,8 @@ Do not assume a prior lab IP or hostname. See `docs/DEPLOYMENT.md`.
 
 | Field | Value |
 |---|---|
-| DNS source (Pi-hole / AdGuard / MagicDNS / hosts) | Tailscale MagicDNS resolves `ubudual5060` today. `APP_HOSTNAME` record still TBD. |
-| A record: `APP_HOSTNAME` → `APP_HOST` | TBD after hostname pick |
+| DNS source (Pi-hole / AdGuard / MagicDNS / hosts) | LAN-first: Pi-hole or hosts for `slab.local` → `192.168.1.202`. Tailscale MagicDNS remains for SSH (`ubudual5060`). |
+| A record: `APP_HOSTNAME` → `APP_HOST` | `slab.local` → `192.168.1.202` (LAN). Optional Tailscale alias later. |
 | Reachable from phone on LAN? | TBD after deploy |
 | Reachable from phone on Tailscale? | TBD after deploy (path intended) |
 
