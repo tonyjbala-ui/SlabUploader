@@ -2,37 +2,43 @@
 
 Working contract for coding agents. Read before writing code.
 
-Status: **Gate A freeze** · signed 2026-08-31 PT · docs refactor 2026-09-01 · SoT: Gitea `Ty_Tech/SlabUploader` on **gitea-atd** (not mirrors).
+Status: **Gate A freeze** · signed 2026-08-31 PT · docs cut to `main` 2026-09-06 · SoT: Gitea `Ty_Tech/SlabUploader` on **gitea-atd** (not mirrors).
 
 ---
 
-## 0. Doc precedence (hard)
+## 0. Where each doc lives
 
-When docs disagree, use this order:
+The live docs agree. Do not keep a conflict ladder in your head. If two live files disagree, that is a docs bug: fix the files, then continue. Do not pick a winner from a ranked list.
 
-1. **`docs/TECH-SPEC-PIPELINE.md`** — deterministic math, image prep, constants, test vectors
-2. **`docs/ARCHITECTURE.md`** — hybrid topology, what-runs-where, secrets why, status machine
-3. This **`AGENTS.md`** — hard rules for agents (verbatim locks below)
-4. **`docs/DATA-MODEL.md`**, **`docs/OPENAPI.md`**, **`docs/CONTENT-WOO.md`**, **`docs/PROMPTS.md`**, **`docs/DEPLOYMENT.md`**. Presentation: `docs/UX.md` (full rewrite landed 2026-09-02, same day as the deletion). Functional gates stay in this file.
-5. **`docs/IMPL-PLAN.md`** — hybrid-aligned Phases 0–6. Phase 2 is a deferred stub only (offline PWA / OCR / ruler). Do not implement deferred stubs or any server happy-path measure/crop as SoT.
-6. **`README.md`** — orientation only
-7. **`docs/archive/PRD-2026-08.txt`** — frozen archive only. Not a source for new work.
+| Doc | Owns |
+|---|---|
+| `docs/TECH-SPEC-PIPELINE.md` | Deterministic math, image prep, constants, test vectors |
+| `docs/ARCHITECTURE.md` | Hybrid topology, what-runs-where, secrets why, status machine |
+| `AGENTS.md` | Hard rules for coding agents (locks below) |
+| `docs/DATA-MODEL.md` | Store row / schema facts |
+| `docs/OPENAPI.md` | Wire / HTTP contracts |
+| `docs/CONTENT-WOO.md` | Listing copy and Woo payload |
+| `docs/PROMPTS.md` | Call 1 / Call 2 prompt files |
+| `docs/DEPLOYMENT.md` | Compose, Caddy, secrets placement, ops |
+| `docs/UX.md` | Presentation: what the mill owner sees and does |
+| `docs/UAT-PRACTICE.md` | Walkable practice UAT for `SLAB-UAT-*` |
+| `docs/IMPL-PLAN.md` | Phases 0–6. Phase 2 is a deferred stub only (offline PWA / OCR / ruler). Do not implement deferred stubs or server happy-path measure/crop as SoT. |
+| `README.md` | Orientation only |
+| `docs/archive/PRD-2026-08.txt` | Frozen archive. Not a source for new work. |
 
-Archived PRD lines that conflict with the files above are non-authoritative (see archive header and known-stale list).
+### Archive mistakes (do not reintroduce)
 
-### Known stale (archive / historical only)
+- PRD FR17 “Tags: fig-* only” is wrong. Locked model is `fig-*` (1+) + `feat-*` (0+).
+- PRD FR19 category-weighted pricing is wrong. Species `$/bdft` only (category-weighted deferred v1.5).
+- PRD FR40 / NFR server-normalization as SoT is wrong. Client owns happy-path measure/crop.
+- PRD FR42 hard-coded `.201` is wrong. Env-agnostic DEPLOYMENT + inventory.
+- Client-side store secrets are wrong. Server AES-GCM only.
+- Offline-first PWA / OCR / ruler are deferred, not MVP.
+- Woo create default is draft + `SLAB-UAT-*` for UAT, not the old “pending” wording.
 
-- Archived PRD FR17 “Tags: fig-* only” → **wrong**. Locked model is `fig-*` (1+) + `feat-*` (0+). See DATA-MODEL.
-- Archived PRD FR19 / overview “species and wood category” pricing → **wrong**. Species `$/bdft` only. Category-weighted pricing is deferred (v1.5).
-- Archived PRD FR40 “server-side processing” and NFR “server normalization” → **wrong**. Client owns happy-path measure/crop; server stores drafts and runs U2Net on demand only.
-- Archived PRD FR42 / deploy bullets hard-coding `.201` → superseded by env-agnostic DEPLOYMENT (inventory + `APP_HOSTNAME`).
-- Older “creds client-side” decision → **wrong**. Server AES-GCM only; never browser storage for secrets.
-- Offline-first PWA / OCR / ruler product text → superseded by hybrid + online-only MVP.
-- Older “pending” Woo create default → superseded: UAT uses **Woo draft** + `SLAB-UAT-*`.
+### Still open (real gaps only)
 
-### Open doc defects
-
-Landed on `docs/refactor-v2`: #5 Application Passwords, #8 Call 1 prefill, #9 confidence gate, #11 `WOO_BASE_URL`, #12 synced-species-only, #15 inline mask knobs (U2Net deferred), #14 taxonomy manufactured last-modified, #2 portable Call1→Call2, #17 shared validation module, #18 409/422 field recovery. **#10 UX spec:** rewritten 2026-09-02; Ty signed the walk 2026-09-06 PT with one amendment (PC browsers in the compatibility matrix). Presentation: `docs/UX.md`. The pre-deletion file is history, not a source. **#4** browser floor: phone + PC families locked; exact minimum version pins and API inventory depth still open. OPENAPI #3 wording already landed if the body still looks open.
+- Issue #4: exact minimum browser version pins and deeper load-bearing API inventory. Phone + PC families are already locked in `docs/UX.md` / TECH-SPEC.
 
 ---
 
@@ -55,7 +61,7 @@ Phase map: **Phase 0 = Gates A+B.** **Gate C = early Phase 1** claimable publish
 | `4ec478f` | Contradiction patches (README/PRD/Woo/DEPLOYMENT) |
 | `4d9f307` / `4e97770` | Inference review + hybrid capture pipeline (pre-freeze baseline) |
 
-Docs refactor stack on `docs/refactor-v2` (2026-09-01) applies OPENAPI store-only, env-agnostic deploy, CONTENT-WOO/DATA-MODEL facts, hybrid Phases 1–6, PRD archive. Product locks above are unchanged.
+Docs refactor is on `main` (cut 2026-09-06). Product locks above are unchanged.
 
 ---
 
