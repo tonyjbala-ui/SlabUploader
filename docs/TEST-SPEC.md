@@ -70,6 +70,8 @@ Every report maps to named case IDs from this spec. Allowed results only: `pass`
 
 Evidence is required for every `pass` or `fail`: a path or paste of real runner output (pytest, httpx, compose logs, curl). No evidence → `not run`. Report table columns are: case id · result · evidence pointer · blocker (if fail).
 
+Gitea issues are the only mechanism for reporting issues found during a test pass. Chat, Slack, and PR comments are not the bug log. On fail, open or update a Gitea issue that includes the case id and evidence pointer; the report table's blocker column links that issue. Do not invent issues that lack runner evidence.
+
 The Test Bar may only summarize what runners printed. Ty also reads raw results and owns gate exit. Gate or phase exit evidence in the Gates section still requires Ty confirmation where IMPL-PLAN mandates it — bots never declare Gate B or Gate C green.
 
 When code does not exist yet, Phase 0 and earlier cases stay `not run`. Do not speculate.
