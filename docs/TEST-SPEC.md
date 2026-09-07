@@ -30,6 +30,7 @@ Case IDs follow the pattern `<prefix>-<number>`. The prefix identifies the test 
 | `OPS` | Operations / deployment / backup | `OPS-1`, `OPS-5` |
 | `INS` | Instrumentation / observability | `INS-1`, `INS-4` |
 | `E2E` | End-to-end browser test (full user flow) | `E2E-1`, `E2E-5` |
+| `FUND` | Fundamentals (cross-cutting dependency bar) | `FUND-1`, `FUND-25` |
 
 Other abbreviations used in this document:
 
@@ -93,6 +94,72 @@ Each row states the test layer, when tests in that layer are written, and what d
 **Test-driven development (TDD)**: write the failing unit test first, then write the minimum code to pass it. This applies to all deterministic core functions: bdft math, pricing, rounding, image crop, and validation rules.
 
 **Tests-with-code**: API contract tests, integration tests, and UI end-to-end tests are written in the same commit that implements the feature. Each feature commit includes its tests and shown execution output in the commit message.
+
+---
+
+## 4. Fundamentals — cross-cutting bar
+
+These cases are the white-box bar for every dependency that touches the product. They run across all phases.
+
+### SvelteKit / Vitest (frontend/src/__tests__/)
+
+| Case | What must happen | Where the rule lives | Verified by |
+|---|---|---|---|
+| FUND-1 | Pure logic tests have zero browser, DOM, or network dependencies | SvelteKit/Vitest convention | Vitest unit test: `vi.mock` any runtime import, assert no browser globals |
+| FUND-2 | Component/browser tests use semantic `getByRole` selectors; class or data-testid alone is not sufficient | SvelteKit testing-library convention | Vitest component test: assert role-based query succeeds |
+| FUND-3 | Real Tab key navigates focus; click-only tests are not sufficient for keyboard paths | UX.md §Browser compatibility | Playwright E2E: `page.keyboard.press('Tab')` followed by `toBeFocused` |
+| FUND-4 | Shared rune/state changes flush before DOM assertion; stale store values do not pass | Svelte rune reactivity | Vitest component test: flush/store tick before `expect` |
+
+### Playwright (frontend/e2e/)
+
+| Case | What must happen | Where the rule lives | Verified by |
+|---|---|---|---|
+| FUND-5 | Tab order: press Tab, assert `toBeFocused` after each stop; no keyboard trap | Playwright convention; UX.md §Browser compatibility | Playwright E2E: sequential `keyboard.press('Tab')` + `toBeFocused` |
+| FUND-6 | Viewport resize/reflow at ~320 px and phone/PC sizes: layout does not clip, overlap, or trap content | UX.md §Browser compatibility | Playwright E2E: `setViewportSize` then assert no clip/overlap |
+| FUND-7 | Focus ring visible on touch and keyboard; focus ring is not hidden by `outline: none` on interactive elements | Playwright convention; WCAG 2.4.7 | Playwright E2E: assert focus ring CSS present on focused interactive element |
+
+### FastAPI / pytest TestClient (backend/tests/)
+
+| Case | What must happen | Where the rule lives | Verified by |
+|---|---|---|---|
+| FUND-8 | App factory pattern creates a fresh app instance per test; no shared mutable state between tests | FastAPI testing convention | pytest TestClient: each test calls the factory, not a module-level app |
+| FUND-9 | `with TestClient(app)` manages lifespan; startup and shutdown hooks run and clean up | FastAPI testing convention | pytest TestClient: context manager exits with clean lifespan |
+| FUND-10 | Clear `dependency_overrides` after every test; no override bleeds to the next test | FastAPI testing convention | pytest TestClient: assert `dependency_overrides` empty after each test |
+| FUND-11 | Override Woo/inference dependencies with mocks; no real network call leaks | FastAPI testing convention | pytest TestClient: assert zero HTTP calls to real Woo/inference endpoints |
+
+### SQLite + Alembic (backend/tests/)
+
+| Case | What must happen | Where the rule lives | Verified by |
+|---|---|---|---|
+| FUND-12 | `PRAGMA foreign_keys=ON` enforced in every test database; FK violation rejected | SQLite testing convention; DATA-MODEL.md | pytest + SQLite: insert orphan row, assert IntegrityError |
+| FUND-13 | Unique and check constraints enforced; duplicate or out-of-range values rejected | SQLite testing convention; DATA-MODEL.md | pytest + SQLite: insert violating row, assert IntegrityError |
+| FUND-14 | Concurrent poll / WAL stale-read risk handled; WAL mode with proper isolation level prevents stale reads | SQLite WAL convention; DATA-MODEL.md | pytest + SQLite: concurrent reader/writer, assert no stale read |
+| FUND-15 | Illegal status transitions rejected by the application layer; status machine enforced | AGENTS.md §7; DATA-MODEL.md slabs | pytest TestClient: attempt illegal transition, assert 422 |
+| FUND-16 | Migrations must not silently drop integrity indexes or constraints; post-migration assertions verify schema integrity | Alembic convention; DATA-MODEL.md | pytest + SQLite: run migration, assert indexes/constraints preserved |
+
+### AES-GCM (settings)
+
+| Case | What must happen | Where the rule lives | Verified by |
+|---|---|---|---|
+| FUND-17 | Fresh nonce per encrypt; tampered ciphertext or wrong key/nonce raises authentication failure | AES-GCM specification; AGENTS.md §4 | Unit test: tamper ciphertext, assert auth failure; encrypt twice, assert nonces differ |
+| FUND-18 | Ciphertext never appears in any GET response; only the configured username and `woo_credentials_configured` boolean returned | OPENAPI.md §settings; DATA-MODEL.md settings | API contract test: assert `woo_app_password` absent from GET /api/v1/settings |
+| FUND-19 | Missing `SLAB_AES_KEY` refuses startup; no fallback to plaintext storage | AGENTS.md §4; DATA-MODEL.md settings | Unit test: unset env var, assert startup rejection |
+
+### Woo REST client (httpx + App Passwords over HTTPS)
+
+| Case | What must happen | Where the rule lives | Verified by |
+|---|---|---|---|
+| FUND-20 | Basic Auth with App Passwords over HTTPS; consumer keys not implemented | AGENTS.md §4; DEPLOYMENT.md §3; OPENAPI.md §settings | Unit test: assert HTTP Basic header, HTTPS-only URL |
+| FUND-21 | 401/400/404 response shapes handled; server maps to actionable error, not raw passthrough | Woo REST convention; CONTENT-WOO.md §2.6 | Integration test with respx: mock 401/400/404, assert mapped error response |
+| FUND-22 | Pre-create SKU lookup mandatory; Woo concurrent duplicate-SKU race handled by checking before create | AGENTS.md §5; CONTENT-WOO.md §2.5 | Integration test with respx: create duplicate SKU, assert 409 before create |
+| FUND-23 | Timeouts and network errors handled gracefully; server returns actionable error, not stack trace | Woo REST convention; CONTENT-WOO.md §2.6 | Integration test with respx: mock timeout/connection error, assert graceful error |
+| FUND-24 | Secrets redacted in logs; no Woo username/password, inference key, or AES key in any log output | AGENTS.md §4; ARCHITECTURE.md §5 | Unit test: assert log output contains no secret material |
+
+### Compose / Caddy (deploy/tests/)
+
+| Case | What must happen | Where the rule lives | Verified by |
+|---|---|---|---|
+| FUND-25 | HTTPS-only `WOO_BASE_URL`; health through proxy; inventory/port collision checked at deploy time | DEPLOYMENT.md §3; AGENTS.md §9 | Shell script: assert HTTPS, health through Caddy, port conflict detection |
 
 ---
 
@@ -329,6 +396,7 @@ bdft equals square feet times thickness in inches (no divide-by-12). TV-3 proves
 | INS-1 | `docs/OPENAPI.md` §health, `docs/AGENTS.md` §6 |
 | INS-2 | issue #6 |
 | INS-3 through INS-4 | `docs/DATA-MODEL.md` §inference_log/sync_log, `docs/AGENTS.md` §6 |
+| FUND-1 through FUND-25 | `docs/AGENTS.md` §1–§9, `docs/ARCHITECTURE.md` §5, `docs/OPENAPI.md`, `docs/DATA-MODEL.md`, `docs/CONTENT-WOO.md`, `docs/DEPLOYMENT.md` |
 
 ---
 
