@@ -70,9 +70,10 @@ Purpose: this document defines every affirmative test case for the SlabUploader 
 | Case | Expected behavior | SoT | Cadence |
 |---|---|---|---|
 | GC-1 | `POST /api/v1/slabs` with `SLAB-UAT-*` SKU creates Woo product with `status: "draft"` regardless of `woo_create_status` setting | AGENTS §5, CONTENT-WOO §2.4 | with-code |
-| GC-2 | Duplicate SKU before create: `GET /products?sku={sku}` finds existing → 409 `duplicate_sku` with `{ field:"sku", actions:["edit_sku","open_existing"] }` | OPENAPI §slabs, issue #3 | with-code |
+| GC-2 | Duplicate SKU before create: `GET /products?sku={sku}` finds existing → 409 `duplicate_sku` with `{ field:"sku", actions:["edit_sku","open_existing"] }` | CONTENT-WOO §2.5, OPENAPI §slabs, issue #3 | with-code |
 | GC-3 | `POST /api/v1/settings/test-woo` returns ok with populated taxonomy; always resyncs taxonomy on success | OPENAPI §settings, issue #14 | with-code |
 | GC-4 | `WOO_BASE_URL` is compose-only HTTPS; Settings GET returns it read-only; PUT rejects write attempts with 422 | AGENTS §5, issue #11 | with-code |
+| GC-5 | FastAPI refuses to start when `WOO_BASE_URL` env is missing or `http://` | AGENTS §4, DEPLOYMENT §3 | with-code |
 
 ### Integration — Woo mock (draft create, SLAB-UAT-*, duplicate SKU, taxonomy)
 
@@ -82,6 +83,7 @@ Purpose: this document defines every affirmative test case for the SlabUploader 
 | W-2 | Woo mock returns 409 for duplicate SKU; server maps to `{ field:"sku", actions:["edit_sku","open_existing"] }`; draft retained | OPENAPI §slabs, issue #3 | with-code |
 | W-3 | Taxonomy sync returns cached data; anchor stays unchanged on no-op sync; anchor bumps only when stored-subset hash changes | ARCHITECTURE §7, issue #14 | with-code |
 | W-4 | `test-woo` always runs taxonomy resync after successful connection test | ARCHITECTURE §7, issue #14 | with-code |
+| W-5 | Failed publish: slab `failed`, photos retained, sync_log written; retry from same screen without re-photographing → success → photos purged | CONTENT-WOO §2.6, TECH-SPEC §5, DATA-MODEL slabs | with-code |
 
 ### Integration — inference OFF path + test-inference probe (issue #2 substance)
 
@@ -126,6 +128,8 @@ Purpose: this document defines every affirmative test case for the SlabUploader 
 | API-6 | `POST /api/v1/slabs/{id}/publish`: pre-condition check returns 422 with field keys for missing required fields; UI maps fields, no raw code | OPENAPI §publish, issue #18 | with-code |
 | API-7 | `POST /api/v1/admin/taxonomy/sync`: pulls categories/attributes/tags; rebuilds cache; anchor bumps only on stored-subset hash change; 502 retains previous cache | OPENAPI §taxonomy, ARCHITECTURE §7, issue #14 | with-code |
 | API-8 | `GET /api/v1/validation/module` returns hash and rules; client caches; submit mismatch returns 412 with fresh module | OPENAPI §validation, issue #17 | with-code |
+| API-9 | `DELETE /api/v1/slabs/{id}`: soft-delete returns 204; unpublished drafts only; published slabs undeletable | OPENAPI §slabs DELETE | with-code |
+| API-10 | `test-woo` fails closed: missing credentials or non-https URL → `{ ok: false, detail: "..." }` without crashing | OPENAPI §settings test-woo | with-code |
 
 ### Integration — taxonomy sync + anchor
 
@@ -133,6 +137,7 @@ Purpose: this document defines every affirmative test case for the SlabUploader 
 |---|---|---|---|
 | TAX-1 | Sync on publish when `now - taxonomy_last_sync_at > 1 hour`; bump anchor only on real change; stale picked id → 422 with current options | ARCHITECTURE §7, CONTENT-WOO §2.2, issue #14 | with-code |
 | TAX-2 | Species picker offers only Woo-synced species; no hardcoded fallback; new species selectable only after sync stores it | ARCHITECTURE §7, issue #12 | with-code |
+| TAX-3 | Client reads taxonomy anchor; re-pulls full taxonomy only when anchor advances past client's last value; no-per-navigation sync | ARCHITECTURE §7, OPENAPI §taxonomy | with-code |
 
 ---
 
@@ -146,12 +151,12 @@ Purpose: this document defines every affirmative test case for the SlabUploader 
 |---|---|---|---|
 | UIE-1 | Review screen: all fields editable; client-computed sqft/bdft/widths shown with manual override; typed override persists across poll/refresh | IMPL-PLAN Phase 3, UX §Review | with-code |
 | UIE-2 | Call 1 prefill ≥ 0.7: fields pre-filled and mutable; user override sticks; below 0.7 fields empty; inline nudges for every still-required control | AGENTS §6, issue #8/#9, UX §Review | with-code |
-| UIE-3 | Duplicate SKU at publish: under SKU field, "This SKU already exists in the store (any status)"; edit SKU or open existing; draft retained; no raw 409 | AGENTS §5, CONTENT-WOO §2.5, issue #3, issue #18 | with-code |
+| UIE-3 | Duplicate SKU at publish: under SKU field, "This SKU already exists in the store (any status)"; edit SKU or open existing; draft retained; no raw 409 | UX §Publish, CONTENT-WOO §2.5, AGENTS §5, issue #3/#18 | with-code |
 | UIE-4 | Stale field at publish: field shows "This value is no longer valid. Pick from the current list"; draft retained; no raw 422 | CONTENT-WOO §2.6, issue #18 | with-code |
 | UIE-5 | Publish success: screen shows listing created, woo_product_id when available; local draft and photos gone; slab status `published` | CONTENT-WOO §2.6, DATA-MODEL slabs | with-code |
 | UIE-6 | Publish failure: plain message, no status number, no stack; retry from same screen without re-photographing | CONTENT-WOO §2.6, issue #18 | with-code |
 | UIE-7 | Inference OFF: full manual taxonomy + content path works; no inference network calls; Generate text disabled; templates still work | IMPL-PLAN Phase 3, UX §Review | with-code |
-| UIE-8 | Settings UI: WP username + app password + test-woo; inference endpoint + test; pricing rules; `woo_create_status`; store URL read-only | IMPL-PLAN Phase 3, issue #11 | with-code |
+| UIE-8 | Settings UI: WP username + app password + test-woo; inference endpoint + test; pricing rules; brand voice/GEO; `woo_create_status`; store URL read-only | IMPL-PLAN Phase 3, OPENAPI §settings, issue #11 | with-code |
 
 ### UI/E2E — capture knobs live re-run (issue #15 substance)
 
@@ -206,7 +211,7 @@ Purpose: this document defines every affirmative test case for the SlabUploader 
 |---|---|---|---|
 | INS-1 | Health non-200 on DB or volume failure; `woo_reachable` false on Woo unreachable | OPENAPI §health, issue #6 | with-code |
 | INS-2 | Request ID logged on every server request | issue #6 | with-code |
-| INS-3 | Inference latency, model name, and confidence recorded in inference_log | DATA-MODEL inference_log, issue #6 | with-code |
+| INS-3 | Inference request_payload and response_payload recorded in inference_log; payloads contain model name and confidence data | DATA-MODEL inference_log, issue #6 | with-code |
 | INS-4 | Sync_log written with payload_hash on every publish attempt; retains success and failure | DATA-MODEL sync_log, issue #6 | with-code |
 
 ### Ops — E2E on all target browsers
@@ -238,13 +243,15 @@ Purpose: this document defines every affirmative test case for the SlabUploader 
 | TV-1…TV-10 | `docs/TECH-SPEC-PIPELINE.md` §8 |
 | V-1…V-3 | `docs/TECH-SPEC-PIPELINE.md` §2, `docs/OPENAPI.md` §validation |
 | AES-1…AES-2 | `docs/ARCHITECTURE.md` §5, `docs/AGENTS.md` §4 |
-| GC-1…GC-4, W-1…W-4 | `docs/CONTENT-WOO.md` §2.4-2.5, `docs/OPENAPI.md` §slabs/§settings |
+| GC-1…GC-5, W-1…W-5 | `docs/CONTENT-WOO.md` §2.4-2.6, `docs/OPENAPI.md` §slabs/§settings, `docs/DEPLOYMENT.md` §3 |
 | INF-1…INF-4 | `docs/OPENAPI.md` §settings, `docs/AGENTS.md` §6 |
 | UI-1…UI-5 | `docs/TECH-SPEC-PIPELINE.md` §3-§4, `docs/UX.md` §Capture/§Review |
-| UIE-1…UIE-10 | `docs/UX.md` §Review/§Publish, `docs/CONTENT-WOO.md` §2.5-2.6 |
+| UIE-1…UIE-10 | `docs/UX.md` §Review/§Publish, `docs/CONTENT-WOO.md` §2.5-2.6, `docs/IMPL-PLAN.md` Phase 3 |
 | C1-1…C2-4 | `docs/AGENTS.md` §6-§7, `docs/PROMPTS.md` §Call 1/2 |
 | OPS-1…OPS-5, E2E-1…E2E-5 | `docs/DEPLOYMENT.md` §1-§8, `docs/IMPL-PLAN.md` Phase 6 |
-| INS-1…INS-4 | `docs/AGENTS.md` §6, `docs/DATA-MODEL.md` §sync_log/inference_log |
+| INS-1 | `docs/OPENAPI.md` §health, `docs/AGENTS.md` §6 |
+| INS-2 | issue #6 |
+| INS-3…INS-4 | `docs/DATA-MODEL.md` §inference_log/sync_log, `docs/AGENTS.md` §6 |
 
 ---
 
@@ -257,7 +264,7 @@ This spec folds affirmative case substance from issue #19 where the rule exists 
 | #2 portable multi-turn | INF-2, INF-3, INF-4, C2-1, C2-2 | OPENAPI §settings, ARCHITECTURE §9 |
 | #3 duplicate SKU wording | GC-2, W-2, UIE-3 | OPENAPI §slabs, CONTENT-WOO §2.5 |
 | #5 Application Passwords | AES-1, AES-2, API-3 | ARCHITECTURE §5, DATA-MODEL settings |
-| #6 instrumentation | INS-1, INS-2, INS-3, INS-4 | DATA-MODEL sync_log/inference_log |
+| #6 instrumentation | INS-1, INS-2, INS-3, INS-4 | DATA-MODEL sync_log/inference_log, issue #6 |
 | #8/#9 Call 1 prefill + 0.7 | UIE-2, C1-2, C1-3 | AGENTS §6, PROMPTS §Call 1 |
 | #11 WOO_BASE_URL | GC-4, UIE-8 | AGENTS §5, DEPLOYMENT §3 |
 | #12 synced-species-only | C1-1, TAX-2 | ARCHITECTURE §7, CONTENT-WOO §2.2 |
@@ -272,9 +279,9 @@ This spec folds affirmative case substance from issue #19 where the rule exists 
 
 | Phase / Gate | Cases | Exit evidence |
 |---|---|---|
-| Phase 0 / Gate B | TV-1…TV-10, V-1…V-3, AES-1…AES-2, H-1, D-1, OPS-1 | Ty confirms TV-3, TV-6, TV-7, TV-10 on real fixtures; health up; AES round-trip; draft store |
-| Gate C (early Phase 1) | GC-1…GC-4, W-1…W-4, INF-1…INF-4, UI-1…UI-5 | Ty opens one `SLAB-UAT-*` Woo draft; inference OFF |
-| Phase 1 remainder | API-1…API-8, TAX-1, TAX-2 | Ty drives curl calibrated → ready; OPENAPI matches; revision + taxonomy green |
+| Phase 0 / Gate B | TV-1…TV-10, V-1…V-3, AES-1…AES-2, H-1, D-1, OPS-1, GC-5 | Ty confirms TV-3, TV-6, TV-7, TV-10 on real fixtures; health up; AES round-trip; draft store |
+| Gate C (early Phase 1) | GC-1…GC-4, W-1…W-5, INF-1…INF-4, UI-1…UI-5 | Ty opens one `SLAB-UAT-*` Woo draft; inference OFF |
+| Phase 1 remainder | API-1…API-10, TAX-1, TAX-2, TAX-3 | Ty drives curl calibrated → ready; OPENAPI matches; revision + taxonomy green |
 | Phase 3 | UIE-1…UIE-10 | Ty publishes test slab as Woo draft `SLAB-UAT-*` |
 | Phase 5 | C1-1…C2-4, OFF-1, OFF-2 | Ty runs species detection on 3 real slabs; inference OFF path green |
 | Phase 6 / PROD | OPS-2…OPS-5, INS-1…INS-4, E2E-1…E2E-5 | Ty signs off on UAT; v1 done |
