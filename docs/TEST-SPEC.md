@@ -84,7 +84,7 @@ Each row states the test layer, when tests in that layer are written, and what d
 
 ## Phase 0 / Gate B — Hybrid skeleton + deterministic core
 
-**Exit evidence**: agent-written test automation confirms TV-3, TV-6, TV-7, and TV-10 output on real fixtures; `GET /api/health` returns 200; AES round-trip passes; draft store stub persists and retrieves.
+**Exit evidence**: Ty confirms TV-3, TV-6, TV-7, and TV-10 output on real fixtures; health returns 200; AES round-trip passes; draft store stub persists and retrieves; unit and API cases automated.
 
 ### Unit — deterministic core (test-driven)
 
@@ -127,7 +127,7 @@ Each row states the test layer, when tests in that layer are written, and what d
 
 ## Gate C — Early Phase 1 (first draft listing, inference disabled)
 
-**Exit evidence**: agent-written test automation creates one `SLAB-UAT-*` WooCommerce draft listing via the mocked store; inference remains disabled; full suite passes.
+**Exit evidence**: Ty opens one `SLAB-UAT-*` WooCommerce draft listing in the real store admin; inference OFF; mocked-store automation is not Gate C exit.
 
 ### API / contract — create + draft
 
@@ -207,7 +207,7 @@ Each row states the test layer, when tests in that layer are written, and what d
 
 ## Phase 3 — Frontend review + publish UI
 
-**Exit evidence**: agent-written test automation publishes a test slab to the real store as a WooCommerce draft with `SLAB-UAT-*`; review, field recovery, and publish outcomes verified.
+**Exit evidence**: Ty publishes a test slab to the real store as a WooCommerce draft `SLAB-UAT-*`; automation covers UI cases; Ty is the exit.
 
 ### UI end-to-end — review, field recovery, publish outcome (phone + PC)
 
@@ -228,7 +228,7 @@ Each row states the test layer, when tests in that layer are written, and what d
 
 ## Phase 5 — Inference (after Gate C is green)
 
-**Exit evidence**: agent-written test automation runs species detection on three real slabs; results are acceptable or manually corrected; full inference-disabled path remains green.
+**Exit evidence**: Ty runs species detection on 3 real slabs with judgment on acceptance; automation covers Call 1/2 cases; full inference-disabled path green.
 
 ### Integration — Call 1/2, portable context, confidence gating
 
@@ -253,7 +253,7 @@ Each row states the test layer, when tests in that layer are written, and what d
 
 ## Phase 6 / Ops — Deployment, user acceptance, hardening
 
-**Exit evidence**: agent-written test automation signs off on deployment smoke tests and UAT results; v1 declared done.
+**Exit evidence**: deployment smoke automated; Ty walks `docs/UAT-PRACTICE.md` and signs off on UAT results; v1 declared done.
 
 ### Ops — compose health, deploy path, backup/restore
 
@@ -285,7 +285,7 @@ Each row states the test layer, when tests in that layer are written, and what d
 
 ---
 
-## Cadence summary
+## When tests are written
 
 **Deterministic core** (TV-1 through TV-10, validation, AES): test-driven development. Unit tests written before any user interface consumes the functions. Property checks: bdft monotonic in thickness and square feet; fill band; no upscale path.
 
@@ -342,12 +342,12 @@ This spec folds affirmative case substance from issue #19 where the rule exists 
 
 | Phase / Gate | Cases | Exit evidence |
 |---|---|---|
-| Phase 0 / Gate B | TV-1 through TV-10, V-1 through V-3, AES-1 through AES-2, H-1, D-1, OPS-1, GC-5 | Agent-written test automation confirms TV-3, TV-6, TV-7, TV-10 on real fixtures; health up; AES round-trip; draft store |
-| Gate C (early Phase 1) | GC-1 through GC-4, W-1 through W-5, INF-1 through INF-4, UI-1 through UI-5 | Agent-written test automation creates one `SLAB-UAT-*` WooCommerce draft; inference disabled |
+| Phase 0 / Gate B | TV-1 through TV-10, V-1 through V-3, AES-1 through AES-2, H-1, D-1, OPS-1, GC-5 | Ty confirms TV-3, TV-6, TV-7, TV-10 on real fixtures; health up; AES round-trip; draft store; unit/API automated |
+| Gate C (early Phase 1) | GC-1 through GC-4, W-1 through W-5, INF-1 through INF-4, UI-1 through UI-5 | Ty opens one `SLAB-UAT-*` WooCommerce draft in real store admin; inference OFF; mocked-store not exit |
 | Phase 1 remainder | API-1 through API-10, TAX-1, TAX-2, TAX-3 | Agent-written test automation drives full calibrated to ready cycle; OPENAPI matches; revision and taxonomy green |
-| Phase 3 | UIE-1 through UIE-10 | Agent-written test automation publishes test slab as WooCommerce draft `SLAB-UAT-*` |
-| Phase 5 | C1-1 through C2-4, OFF-1, OFF-2 | Agent-written test automation runs species detection on 3 real slabs; inference disabled path green |
-| Phase 6 / production | OPS-2 through OPS-5, INS-1 through INS-4, E2E-1 through E2E-5 | Agent-written test automation signs off on deployment and UAT results; v1 done |
+| Phase 3 | UIE-1 through UIE-10 | Ty publishes test slab as Woo draft `SLAB-UAT-*`; automation UI cases; Ty is exit |
+| Phase 5 | C1-1 through C2-4, OFF-1, OFF-2 | Ty runs species detection on 3 real slabs with judgment on acceptance; automation Call 1/2 cases; inference disabled path green |
+| Phase 6 / production | OPS-2 through OPS-5, INS-1 through INS-4, E2E-1 through E2E-5 | Deployment smoke automated; Ty walks `docs/UAT-PRACTICE.md` and signs off on UAT; v1 done |
 
 ---
 
