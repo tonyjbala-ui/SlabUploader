@@ -64,6 +64,18 @@ Test dependencies are pinned in `backend/tests/requirements-test.txt` and `front
 
 ---
 
+## Results recording & report-out
+
+Every report maps to named case IDs from this spec. Allowed results only: `pass`, `fail`, `not run`, and optionally `blocked` with a blocker pointer. Never invent pass.
+
+Evidence is required for every `pass` or `fail`: a path or paste of real runner output (pytest, httpx, compose logs, curl). No evidence → `not run`. Report table columns are: case id · result · evidence pointer · blocker (if fail).
+
+The Test Bar may only summarize what runners printed. Ty also reads raw results and owns gate exit. Gate or phase exit evidence in the Gates section still requires Ty confirmation where IMPL-PLAN mandates it — bots never declare Gate B or Gate C green.
+
+When code does not exist yet, Phase 0 and earlier cases stay `not run`. Do not speculate.
+
+---
+
 ## 3. Test pyramid overview
 
 Each row states the test layer, when tests in that layer are written, and what document drives the expected behavior.
