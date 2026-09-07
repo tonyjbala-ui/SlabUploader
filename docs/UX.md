@@ -109,7 +109,7 @@ values always win and every value stays editable.
 ### What vision fills, and when
 
 When inference is on, Call 1 runs after the calibrated draft uploads. It sends all inventory photos
-downscaled to 1024 plus the store's synced species, attribute, and tag lists, and returns a guess
+downscaled to 1024 plus the store's synced species and attribute lists, and returns a guess
 with a confidence per field. The threshold is 0.7 by default:
 
 - A field at or above 0.7 pre-fills on review. It stays editable; the owner can change or clear it.

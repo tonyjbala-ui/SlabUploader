@@ -194,10 +194,11 @@ Sheet/slider prefs (`sheet_mode`, sensitivity, edge offset, feather) are **not**
 settings keys in POC. Client localStorage is source of truth (AGENTS §4 / ARCHITECTURE §5).
 Optional server sync of those prefs is out of scope for POC.
 
-**Prompt files** — not in the settings table. Stored as text files in
-`/data/prompts/` (server volume). Read fresh on each invocation. Default
-prompts shipped with the app; owner edits directly. A reset-to-default script
-restores originals.
+**Prompt files** — not in the settings table. Shipped as text files in
+`backend/app/prompts/` (repo), bind-mounted read-only to `/app/prompts/` in the
+FastAPI container. Read fresh on each invocation. Default prompts shipped with the
+app; owner edits on the host; no restart needed. A reset-to-default script
+restores originals from the app bundle.
 
 This table is the ciphertext **key inventory** and schema only. The never-browser /
 AES-GCM / `SLAB_AES_KEY` env policy lives in AGENTS.md §4; flow lives in ARCHITECTURE §5.

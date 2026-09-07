@@ -53,6 +53,12 @@ Phase map: **Phase 0 = Gates A+B.** **Gate C = early Phase 1** claimable publish
 
 Docs refactor is on `main` (cut 2026-09-06). Product locks above are unchanged.
 
+### Known stale PRD lines
+
+`docs/archive/PRD-2026-08.txt` is frozen history. These PRD lines are superseded by live docs:
+FR17 (fig-* 1+, feat-* 0+), FR19 (species $/bdft only), FR40 (client-side, not server-side
+processing), NFR server normalization timing, FR42 (env-agnostic DEPLOYMENT + deploy/INVENTORY.md).
+
 ---
 
 ## 1. Topology (locked — hybrid)
@@ -149,7 +155,7 @@ Payload and publish sequence depth: `docs/CONTENT-WOO.md`. Key only: DATA-MODEL 
 - **Gate C** claimable path: inference **OFF**; manual taxonomy + deterministic numbers + Woo draft path.
 - **Call 1 (vision) / Call 2 (text) only after Gate C is green**, still inside overall POC before "done."
 - Call 1 auto only if `inference_enabled`; Call 2 never auto-fires (user taps Generate text).
-- Call 1 body: all inventory photos @1024. Taxonomy lists sent to Call 1 are **exactly the Woo-synced species / attribute / tag sets**.
+- Call 1 body: all inventory photos @1024. Taxonomy lists sent to Call 1 are **exactly the Woo-synced species / attribute sets**.
 - **Confidence 0.7 (default):** ≥ 0.7 → pre-populate species, wood categories, edge, figure, grade, and feat-* from Call 1 (**mutable**). < 0.7 → those fields stay **empty**. Ready still requires the full named set in §7. Presentation: `docs/UX.md`.
 - **Taxonomy cache:** `taxonomy_last_sync_at` vs `taxonomy_anchor` (bump only on stored-subset hash change, including deletions). Client re-pulls iff the anchor advanced. `test-woo` always syncs; publish if last_sync >1h. No per-nav sync. No Woo taxonomy timestamp.
 - Call 2 portable context: default full resend; never require `previous_response_id`. `test-inference` two-turn probe `stateful|stateless|fail`. Fail blocks **Call 2 enablement only**.

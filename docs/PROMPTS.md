@@ -2,17 +2,17 @@
 
 Status: SPEC · 2026-08-27 · SlabUploader
 Prompts are server-side text files, not settings values. Read fresh on each
-invocation. Shipped defaults live in `backend/prompts/`.
+invocation. Shipped defaults live in `backend/app/prompts/`.
 
 ## Management
 
 - **Location:** `/app/prompts/` inside the FastAPI container, mounted read-only
-  from host `prompts/`.
+  from host `backend/app/prompts/`.
 - **Editing:** Edit the text files on the host. No server restart needed.
 - **Versioning:** The inference_log stores the prompt content (or hash) with each
   inference call, so you can trace which prompt version produced which result.
 - **Reset-to-default:** `python -m app.prompts.reset` restores shipped defaults
-  from the app bundle.
+  from `backend/app/prompts/`.
 
 ## Call 1 — Vision (species/character classification)
 
@@ -85,7 +85,7 @@ Return valid JSON matching this schema:
 ```
 
 ### Notes
-- The taxonomy list (species, wood categories, edge type, figure, grade, feat-*) is
+- The taxonomy list (species, wood categories, edge type, figure, grade) is
   pulled from the **synced Woo cache only**. No hardcoded mill species list. A term
   not in the cache cannot be suggested or selected.
 - Brief definitions help the model distinguish ambiguous cases
@@ -95,8 +95,8 @@ Return valid JSON matching this schema:
   is the authoritative source for feat-* tag definitions; the design does not
   duplicate them.
 - **Pre-population (when `inference_enabled`):** Call 1 results are the primary
-  source that fills the review screen for species, character, wood categories,
-  figure/edge/grade attributes, and mapped `fig-*`/`feat-*` tags.
+  source that fills the review screen for species, wood categories, edge type,
+  figure, grade, and mapped `feat-*` tags from free-text observations.
 - **Confidence gate (default threshold 0.7):**
   - Field confidence **≥ threshold** → pre-populate that field (mutable;
     user may clear or change it).
@@ -171,9 +171,9 @@ Return JSON: { "prose": "..." }
 The server assembles the final title and description from templates with
 deterministic measurements, inserting the LLM prose where appropriate.
 
-Example title: `{species} {length_ft}ft × {width_avg}in Slab — {figure}`
+Example title: `{species} {length_ft}ft {length_in_remainder}in × {width_avg_in}in Wood Slab — {figure}`
 Example description: `{llm_prose}. Each slab is naturally shaped — width varies
-along the length at {width_min}in to {width_max}in. Sold by the slab;
+along the length at {width_min_in}in to {width_max_in}in. Sold by the slab;
 dimensions as measured. {geo_sentence}`
 
 ### Notes

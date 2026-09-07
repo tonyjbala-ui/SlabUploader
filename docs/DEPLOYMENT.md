@@ -147,10 +147,13 @@ provide `python -m app.security.rekey NEW_KEY` (reads old key from env
 ```
 1. sqlite3 /data/slab.db ".backup /backups/slab-YYYYMMDD.db"   # WAL-safe
 2. tar czf /backups/slab-images-YYYYMMDD.tgz -C /images .
-3. cp -r /backups/prompts-YYYYMMDD.tar.gz prompts/              # prompt files
-4. retain: 7 daily + 4 weekly; prune older
-5. log result to /var/log/slab-backup.log; alert (Hermes) on failure
+3. retain: 7 daily + 4 weekly; prune older
+4. log result to /var/log/slab-backup.log; alert (Hermes) on failure
 ```
+
+Prompt files live in the git repo (`backend/app/prompts/`) and are version-controlled;
+they do not need a separate backup. The `reset-to-default` script restores shipped
+defaults from the app bundle.
 
 - Backup target: local dir first; mirror to an off-box share for safety (same pattern
   as other stacks on the host).

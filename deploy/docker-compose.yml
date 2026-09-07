@@ -31,7 +31,7 @@ services:
     volumes:
       - slab_db:/data
       - slab_images:/images
-      - ../prompts:/app/prompts:ro
+      - ../backend/app/prompts:/app/prompts:ro
     ports: ["127.0.0.1:${FASTAPI_PORT:-18081}:8000"]
     mem_limit: 2g
     restart: unless-stopped
