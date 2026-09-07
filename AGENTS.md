@@ -19,6 +19,7 @@ Status: **Gate A freeze** · signed 2026-08-31 PT · docs cut to `main` 2026-09-
 | `docs/PROMPTS.md` | Call 1 / Call 2 prompt files |
 | `docs/DEPLOYMENT.md` | Compose, Caddy, secrets placement, ops |
 | `docs/UX.md` | Presentation: what the mill owner sees and does |
+| `docs/TEST-SPEC.md` | Engineer test bar: pyramid cases, phased by gate, through PROD |
 | `docs/UAT-PRACTICE.md` | Walkable practice UAT for `SLAB-UAT-*` |
 | `docs/IMPL-PLAN.md` | Phases 0–6. Phase 2 is a deferred stub (offline PWA / OCR / ruler). |
 | `README.md` | Orientation only |

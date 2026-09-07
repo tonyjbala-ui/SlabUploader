@@ -16,6 +16,8 @@ Ground rules (from AGENTS.md):
 - Inference stays toggleable; the full suite must pass with it disabled.
 - One phase = a reviewable, shippable increment.
 
+Test specification: `docs/TEST-SPEC.md` — pyramid cases, phased by gate, affirmative only.
+
 ---
 
 ## Phase 0 — Hybrid skeleton and client deterministic core (= Gates A+B)
