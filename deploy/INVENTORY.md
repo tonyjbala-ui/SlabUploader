@@ -1,7 +1,7 @@
 # Deploy inventory worksheet
 
 Fill this at **Gate B** on the designated host before any port bind or Caddy merge.
-Do not assume a prior lab IP or hostname. See `docs/DEPLOYMENT.md`.
+The host must be inventoried before any deployment. See `docs/DEPLOYMENT.md`.
 
 ## Host
 

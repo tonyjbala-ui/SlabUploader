@@ -79,7 +79,7 @@ flowchart TB
 ## 3. Clarifications
 
 1. **Happy path** stays on the phone through PNG + numbers. FastAPI is idle until the user has a confirmed mask.
-2. **Mask knobs** live on capture; each change re-runs client BG removal. Server U2Net “Try harder” is deferred from POC (keep the one-photo contract; do not ship the control).
+2. **Mask knobs** live on capture; each change re-runs client BG removal. Server U2Net “Try harder” is deferred from POC. The one-photo contract stays in the architecture; the control is not shipped until post-POC.
 3. **Draft upload** sends **originals + processed PNGs + length/thickness/SKU/sqft/bdft/widths**. Originals are needed if Call 1 or a later retry must not depend on the tab still being open. After successful Woo publish, server deletes both.
 4. **Call 1** is server-side so the vision key never sits in the browser. Auto-run
    on slab create **only if** `inference_enabled` is true. If disabled, Call 1
@@ -192,7 +192,7 @@ hash changes, including deletions).
 - Client reads the anchor. If it advanced past the client's last value, re-pull
   the **full** taxonomy cache. One timestamp governs categories, attributes, and
   tags together.
-- Do not invent a Woo-side taxonomy timestamp or a per-table anchor.
+- `taxonomy_anchor` is app-managed; no Woo-side timestamp or per-table anchor is used.
 
 **Triggers**
 
@@ -223,7 +223,7 @@ Two consumers: review UI and Call 2 prompt builder. Client caches the module.
 Providers differ. Default portable path: **resend the full Call 1 turn** (prompt + images metadata + assistant JSON) with Call 2. Opt into `previous_response_id` only after probe.
 
 `POST /api/v1/settings/test-inference` two-turn probe records `stateful | stateless | fail`.
-**Fail blocks Call 2 enablement only** (Gate C inference-OFF still works). Never require `previous_response_id`. Do not ship a Call 2 that silently drops Call 1 context.
+**Fail blocks Call 2 enablement only** (Gate C inference-OFF still works). Call 2 always carries the full Call 1 context; `previous_response_id` is optional after probe.
 
 Per-slab thread on the **server** (client does not hold provider IDs). Best-effort delete on publish / abandon / fail; log and continue.
 

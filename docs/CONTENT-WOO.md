@@ -54,7 +54,7 @@ and the final stored content.
 - Auth is **WordPress Application Passwords**, not WooCommerce consumer keys
   (`ck_`/`cs_`) and not the user's login password.
 - Create a **dedicated low-privilege WordPress user** (shop manager, or a custom
-  role with product create/edit + media upload). Do not reuse an admin account.
+  role with product create/edit + media upload). A dedicated low-privilege user, not the admin account, is used.
 - Generate the application password under **Users → Profile → Application
   Passwords**. WordPress requires **HTTPS** for that UI; the store must already
   be on TLS (Caddy enforces HTTPS on the app side too).
@@ -81,12 +81,12 @@ cache retained (never delete-then-fail).
 **Manufactured stamps.** Woo REST has **no** usable last-modified on categories,
 attributes, or tags. FastAPI persists `taxonomy_last_sync_at` (every successful
 pull) and `taxonomy_anchor` (bump only when stored-subset hash changes, including
-deletions). Client re-pulls the full taxonomy iff the anchor advanced. Do not
-invent a Woo-side taxonomy timestamp. Do not sync per navigation.
+deletions). Client re-pulls the full taxonomy iff the anchor advanced. No Woo-side
+taxonomy timestamp; no per-navigation sync.
 
 **Triggers:** (1) successful `test-woo` **always** resyncs; (2) publish if
 `now - taxonomy_last_sync_at > 1 hour` then reconcile (bump only on real change);
-(3) optional app launch / Settings refresh. If a picked id vanished after a refresh, show that field as no longer valid. Do not silently swap it.
+(3) optional app launch / Settings refresh. If a picked id vanished after a refresh, show that field as no longer valid. The selection is not silently swapped.
 
 **Species exclusivity.** UI pickers, pricing seeds, and Call 1 species lists are
 **exactly** the synced species-category leaves. No hardcoded, invented, or fallback
@@ -104,7 +104,7 @@ the submit list. Review will not continue until the full ready set is filled:
 SKU, length, thickness, price, species, wood category, edge type, figure,
 grade, thickness band, moisture, fig-* tags, and inventory PNG(s). Species
 plus one figure is not enough. Presentation: `docs/UX.md`.
-Do not fill a low-confidence guess.
+Low-confidence guesses are not filled.
 
 Names from vision or from typing match store ids case-insensitive, trimmed. No
 match leaves the field empty so they can pick from the list. The store will still
@@ -113,10 +113,10 @@ reject a missing required field at publish.
 
 Field rules:
 - **Categories**: species leaf (1 required) plus wood-category leaf ids (1+).
-- **Tags**: `fig-*` (1+ required) and `feat-*` (0+). Do not invent generic
-  character or species product tags. Woo is authoritative for tag definitions.
+- **Tags**: `fig-*` (1+ required) and `feat-*` (0+). Only documented
+  character or species product tags are used. Woo is authoritative for tag definitions.
 - **Attributes**: the five locked Woo attributes only — Edge Type, Figure, Grade,
-  Thickness, Moisture — using term ids from the cache. Do not publish species,
+  Thickness, Moisture — using term ids from the cache. Species,
   character, length, or free-text thickness as product attributes. Missing
   attributes are skipped, not created (v1: no attribute creation).
 
@@ -148,13 +148,13 @@ Vision only suggests. It never blocks publish. With vision off, everything is ty
 For reliability the server:
 1. For each customer-facing inventory photo in `seq` order (processed transparent PNGs
    from the client TECH-SPEC path): `POST /media` with the **PNG bytes** → get attachment
-   `source_url`. Woo accepts `image/*`; keep alpha. Do not re-encode to JPEG and drop alpha.
+   `source_url`. Woo accepts `image/*`; keep alpha. JPEG re-encoding drops alpha and must not happen.
 2. Reference those `source_url` values in `images` (≤5 inventory photos).
 3. Only `kind=inventory` photos. Calibration photos do not exist in this design.
 
 **Status** comes from Settings `woo_create_status` (`draft` or `publish`, default
 `draft`). Practice SKUs `SLAB-UAT-*` are always created as drafts, even if Settings
-say publish. Do not edit an existing SKU in this version. After a successful create,
+say publish. Existing SKUs are not edited in this version. After a successful create,
 the server deletes the original and processed photos. A slab marked published in the
 app means the store create succeeded. That is not the same as WooCommerce "publish."
 The force-draft rule is in `AGENTS.md`. This file only owns the payload and the steps.

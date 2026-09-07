@@ -190,9 +190,9 @@ Keys (server settings; secrets encrypted at rest):
 - `aspect_ratio` ('3:4'), `output_px` (1600), `output_px_min` (1600), `fill_target` (0.80)
 
 
-Sheet/slider prefs (`sheet_mode`, sensitivity, edge offset, feather) are **not** server
-settings keys in POC. Client localStorage is source of truth (AGENTS §4 / ARCHITECTURE §5).
-Optional server sync of those prefs is out of scope for POC.
+Sheet/slider prefs (`sheet_mode`, sensitivity, edge offset, feather) persist in client
+localStorage only. Client localStorage is source of truth (AGENTS §4 / ARCHITECTURE §5).
+Server sync of these prefs is deferred post-POC.
 
 **Prompt files** — not in the settings table. Shipped as text files in
 `backend/app/prompts/` (repo), bind-mounted read-only to `/app/prompts/` in the

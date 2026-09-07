@@ -46,7 +46,7 @@ There are no calibration photos in this design. Only inventory photos exist.
 ### Mask overlay and four knobs
 
 The app removes the background sheet and draws the mask as an overlay on the source photo, showing
-which pixels count as slab and which do not. The owner looks at that edge against the real wood.
+which pixels count as slab and which do not. The owner reviews that edge against the real wood.
 This is the only quality check in the pipeline. There is no confidence score, no auto-gate, and no
 photo-quality checker. A clipped or over-inclusive mask shifts every downstream number with nothing
 later to catch it, so the eye on the overlay is what stands behind the measurement.
@@ -208,26 +208,21 @@ Exact minimum version pins are still tracked under issue #4. The matrix above is
 for which classes of client are in scope.
 
 Unsupported browser behavior: hard stop. Show a clear message that this browser is not supported,
-with a link to update or switch to a supported browser. Do not attempt a broken mask. No polyfill
+with a link to update or switch to a supported browser. No polyfill
 strategy in this version.
 
-Load-bearing client surfaces (do not silently drop): canvas-based mask overlay and live knob re-run,
+Load-bearing client surfaces that must remain: canvas-based mask overlay and live knob re-run,
 image crop/prep to 3:4 transparent PNG, file/photo intake for inventory shots, and the online API
 calls for draft upload, review, and publish. Depth for APIs stays in `docs/TECH-SPEC-PIPELINE.md`
 and `docs/OPENAPI.md`.
 
-## What this version does not show
+## Deferred features
 
-These are locked out for now; they do not appear on any screen:
-
-- No photo-quality checker and no banner over the photo telling the owner it is bad. The overlay edge
-  plus the owner's eye is the only gate.
-- No OCR of a printed SKU label. SKU is typed by hand.
-- No ruler or scale detection. Length is entered by hand; the browser derives its own pixel-to-inch
-  scale from that length and the confirmed axis.
-- No server-side measuring or cropping as the source of truth. The browser owns the happy path.
-- No U2Net "try harder" control in this version. It stays in the architecture for later.
-- No offline capture, no airplane-mode flow. Online only.
+Photo quality, OCR, ruler detection, server-side measuring, U2Net control, and offline capture are
+deferred post-POC. The overlay edge plus the owner's eye is the only quality gate. SKU is typed by
+hand. Length is entered by hand; the browser derives its own pixel-to-inch scale. The browser owns
+the happy path for measuring and cropping. The U2Net one-photo contract stays in the architecture
+for later. Capture is online only.
 
 ## Where each job lives
 

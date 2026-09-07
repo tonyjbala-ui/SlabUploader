@@ -162,7 +162,7 @@ Sheet/slider prefs are client localStorage only in POC (not in SettingsView).
 - `DELETE /api/v1/slabs/{id}` → `204`. Soft: only unpublished drafts. Published slabs cannot be deleted from the app.
 
 ### Photo operations
-- `POST /api/v1/slabs/{id}/u2net/{pid}` — **post-POC.** "Try harder." Server runs U2Net on this one photo, returns a better mask. Do not implement or expose in Gate C / first listing. Keep the contract; do not delete.
+- `POST /api/v1/slabs/{id}/u2net/{pid}` — **post-POC.** "Try harder." Server runs U2Net on this one photo, returns a better mask. The contract is preserved but not implemented or exposed in Gate C / first listing.
   - Returns `202` `{ mask_url: "..." }`. Client uses the mask to re-compute area/widths locally.
   - `404` if photo not found.
 - `GET /api/v1/slabs/{id}/photos/{pid}/original` → `image/*` (original, while retained).

@@ -12,7 +12,7 @@ Inference, Woo payload, API, and schema live in other docs.
 1. **Determinism** — same inputs → bit-identical outputs. No randomness, no timestamps in math, no network calls for the math.
 2. **Manual entry is authoritative** — user-entered length, thickness, SKU, and price always win over any computed value.
 3. **Fallback chain is explicit** — every computed value has a defined fallback; the system never silently guesses.
-   - BG removal: chroma-key / threshold → four knobs (sheet, sensitivity, edge offset, feather) live on capture → retake. U2Net last-resort is deferred from POC (do not delete from architecture).
+   - BG removal: chroma-key / threshold → four knobs (sheet, sensitivity, edge offset, feather) live on capture → retake. U2Net last-resort is deferred from POC; the contract stays in the architecture.
    - Length axis: min-area bounding rect → user rotate/confirm → retake if the photo is unusable.
    - Area: requires a single contiguous slab mask; broken mask → flag and retake.
 4. **Units** — inches in 1/8" steps; sqft and bdft to 2 decimals; price half-up to 2 decimals. Those rounded values are what get stored. No sqin in the UI, tests, or product copy.
@@ -33,8 +33,7 @@ update / switch link. No polyfill strategy in POC.
 
 Load-bearing client APIs for the deterministic path include canvas (or OffscreenCanvas where used)
 for mask overlay and knob re-run, image decode/crop/encode for 3:4 transparent PNG prep, and
-standard fetch to the app API. Do not depend on APIs outside this inventory without updating this
-section.
+standard fetch to the app API. Only APIs listed here are used; update this section before adding new ones.
 
 ## 2. Units and rounding
 
@@ -91,9 +90,9 @@ round trip for mask tuning in POC.
 - **Black:** grayscale threshold. Same flood-fill (protects dark grain).
 - **POC path:** client-side only (sheet detect + four knobs). If the edge is still
   wrong after tuning, **retake**.
-- **Post-POC fallback (deferred, not deleted):** U2Net matting on one photo via
-  FastAPI. Mask returns; knobs still apply on the client. Do not ship the control
-  in Gate C / first listing. Do not remove the contract from architecture.
+- **Post-POC fallback (deferred, contract preserved):** U2Net matting on one photo via
+  FastAPI. Mask returns; knobs still apply on the client. The U2Net control is not
+  shipped in Gate C / first listing. The contract stays in the architecture for post-POC.
 - Morphological close, then feather per the setting.
 
 ### 3.5 Edge quality
@@ -153,7 +152,7 @@ Applies to every inventory photo of the slab (first photo and the rest).
   configurable in settings).
 - Transparent **PNG only**.
 - Slab centered. **80% fill at the extremes** (widest and tallest points of the slab). Extra margin where the slab is narrower.
-- After crop, if the source has enough pixels, shorter side ≥ **1600 px**. If it cannot, warn and ask for a retake — do not invent pixels.
+- After crop, if the source has enough pixels, shorter side ≥ **1600 px**. If it cannot, warn and ask for a retake. The source must supply enough pixels.
 - Original + processed kept while draft/retry; both purged after successful publish (server storage; see Data Model).
 
 ## 6. Pricing
@@ -187,7 +186,7 @@ GREEN_SAT_MIN    = 40
 GREEN_VAL_MIN    = 40
 BLACK_THRESH     = 30
 ```
-Sensitivity, edge offset, and feather map onto these at runtime. Users do not edit the raw HSV numbers.
+Sensitivity, edge offset, and feather map onto these at runtime. Users interact with the knobs, not the raw HSV numbers.
 
 ## 8. Test vectors
 
@@ -213,7 +212,7 @@ One square end, one 45° cut. Length axis follows prevailing length, not the dia
 Slab centered in a 3:4 frame. At the widest and tallest points, fill = 0.80. PNG with alpha. Shorter side ≥ 1600 when the source allows.
 
 ### TV-7 Too-small source
-After 80% crop, shorter side would be below 1600 and the source cannot supply it. Warn. Do not upscale from nothing. That photo is not publishable until retake.
+After 80% crop, shorter side would be below 1600 and the source cannot supply it. Warn; no upscaling from nothing. That photo is not publishable until retake.
 
 ### TV-8 Pricing
 bdft 0.96, species $12.50/bdft → rec **12.00**.  
@@ -240,9 +239,9 @@ Price 12.345 → **12.35**.
 7. 3:4 portrait is the PIP crop, configurable in settings.
 8. Client does all of this math. Server stores the numbers the client sends.
 
-## 10. Out of scope here (covered in other docs)
+## 10. Cross-reference to other docs
 
-| Topic | Doc |
+| Topic | Depth doc(s) |
 |---|---|
 | Call 1 / Call 2 prompts, taxonomy mapping | PROMPTS, CONTENT-WOO |
 | Portable Call 1→Call 2 context (full resend default) | ARCHITECTURE §9, PROMPTS |
@@ -251,4 +250,4 @@ Price 12.345 → **12.35**.
 | HTTP contract, taxonomy `taxonomy_anchor` | OPENAPI |
 | Client vs server topology, validation module | ARCHITECTURE |
 | Auto-dimension overlay, figure-weighted price | IMPL-PLAN (v1.5) |
-| Offline capture | non-goal (online-only POC; see AGENTS) |
+| Online-only capture (offline deferred) | AGENTS §2, ARCHITECTURE §4 |

@@ -89,13 +89,11 @@ Depth: `docs/ARCHITECTURE.md`.
 
 ---
 
-## 2. Deferred and out of scope
+## 2. Deferred work
 
-The MVP is online-only, manual SKU entry, manual length (scale = longest_axis_px / L), and client-side measure/crop as source of truth. No server happy-path pipeline. No fake upscale; undersized source warns and requires retake.
+The MVP is online-only. Measuring lives in the browser. Manual SKU entry, manual length, and client-side measure/crop are the source of truth. Undersized source warns and requires retake. The server stores client-sent numbers; there is no server happy-path pipeline for the deterministic core.
 
-Full deferred inventory: `docs/ARCHITECTURE.md` §4 and `docs/IMPL-PLAN.md` Phase 2 (offline PWA, OCR, ruler). Phase 2 is a deferred stub only — do not implement.
-
-Post-POC items: LoRA / fine-tune, figure-/category-weighted pricing (v1.5), auto-dimension overlay (v1.5), bulk publish, staff roles, analytics, SKU update path.
+Phase 2 is a deferred stub for offline PWA, OCR, and ruler detection. Post-POC items: LoRA / fine-tune, figure-/category-weighted pricing (v1.5), auto-dimension overlay (v1.5), bulk publish, staff roles, analytics, SKU update path. Depth: `docs/ARCHITECTURE.md` §4 and `docs/IMPL-PLAN.md` Phase 2.
 
 ---
 

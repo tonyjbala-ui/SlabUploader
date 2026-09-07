@@ -7,14 +7,14 @@ Follow the sections in order. Each one names what you do, what you should see, a
 lives.
 
 **Inference is OFF for this walk.** The optional ON path is only valid after Gate C is green and
-the inference endpoint is already configured. Do not turn it on here.
+the inference endpoint is already configured. Inference stays off here.
 
 ---
 
 ## 1. Host and deploy preconditions
 
 Before this walk, the app must already be on the inventoried host. This section only checks that.
-Do not invent host IPs or hostnames. Read them from `deploy/INVENTORY.md`.
+Host IPs and hostnames come from `deploy/INVENTORY.md`.
 
 1. **Inventory is filled.** `deploy/INVENTORY.md` has `APP_HOST`, `APP_HOSTNAME`, ports, Caddy
    location, and the smoke results. It is the only source for what runs where on this host.
@@ -41,7 +41,7 @@ Settings.
 1. **Store is on HTTPS.** WordPress only offers Application Passwords over HTTPS. The store must
    already be on TLS. If it is not, stop and fix the store first.
 2. **Dedicated low-privilege user.** Create or use a WordPress user that can create and edit
-   products and upload media. Do not reuse the store admin login. A shop manager role or a custom
+   products and upload media. The store admin login is not reused. A shop manager role or a custom
    role with product create/edit plus media upload is enough.
 3. **Generate the password.** Sign in as that user. Go to **Users → Profile → Application
    Passwords**. Generate a password and label it "SlabUploader". Copy the password. WordPress
@@ -61,7 +61,7 @@ the old password in the WP profile and entering a new one in Settings, then re-r
 
 ## 3. Practice build rules
 
-These rules keep practice runs invisible to customers. They are locked. Do not change them for
+These rules keep practice runs invisible to customers. They are locked. Changes are not made for
 the walk.
 
 - **SKU prefix `SLAB-UAT-*`.** Every practice listing uses a SKU that starts with `SLAB-UAT-`.
@@ -69,12 +69,12 @@ the walk.
 - **Always a Woo draft.** A `SLAB-UAT-*` SKU creates a WooCommerce draft even if Settings say
   publish. Customers cannot open it. This is hard rule in `AGENTS.md` §5.
 - **`woo_create_status` defaults to draft.** The Settings field that controls create status
-  defaults to `draft`. For practice you do not need to change it. If it is `publish`, the
+  defaults to `draft`. Practice uses the default. If it is `publish`, the
   `SLAB-UAT-*` rule still forces a draft.
 - **Customers never see practice listings.** A Woo draft is hidden from the storefront. If you
   can see the product on the live store, something is wrong.
 
-If a practice SKU is not `SLAB-UAT-*`, it is not a practice run. Do not publish a real SKU in
+If a practice SKU is not `SLAB-UAT-*`, it is not a practice run. Real SKUs are not published in
 this walk.
 
 ---
@@ -114,7 +114,7 @@ hard stop. Switch to a supported browser.
 1. You are on the review screen. Fill every required field. Inference is OFF, so everything starts
    empty.
 2. **Species.** Pick exactly one from the synced store list. The list came from `test-woo`.
-   Do not type a species that is not in the list.
+   Only species in the list may be typed.
 3. **Wood categories.** Pick at least one from the synced list.
 4. **Edge type, figure, grade.** Pick from the synced lists. At least one figure, at least one
    grade.
@@ -207,7 +207,7 @@ After the walk, decide what to do with the Woo draft UAT product.
 
 **Real live publish is a separate step.** It is not part of this walk. A real product uses a
 non-UAT SKU (no `SLAB-UAT-` prefix) and is published only after you review it. That is a
-different decision. Do not run it here. The name of that step is **final POC publish**, and it
+different decision. That step is not run here. The name of that step is **final POC publish**, and it
 is gated on your review of one real listing.
 
 ---

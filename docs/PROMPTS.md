@@ -100,7 +100,7 @@ Return valid JSON matching this schema:
 - **Confidence gate (default threshold 0.7):**
   - Field confidence **≥ threshold** → pre-populate that field (mutable;
     user may clear or change it).
-  - Field confidence **< threshold** → leave empty. Do not show the model's
+  - Field confidence **< threshold** → leave empty. The model's
     low-confidence guess as a default.
   - Call 1 does not define the ready gate. Species + figure (or any vision
     subset) is assist/prefill only. Ready is the **full named set** in AGENTS §7
@@ -135,7 +135,7 @@ injected by deterministic templates.
 ```
 You are a professional product copywriter for premium, one-of-a-one wood
 slabs. Write compelling, natural-sounding descriptions. Use the brand voice
-provided. Do not invent measurements — use only the provided data.
+provided. Measurements are not invented; only the provided data is used.
 ```
 
 ### User prompt (assembled at runtime)
@@ -160,7 +160,7 @@ Write:
 2. A paragraph describing the character, grain, color, and use cases
 3. A call to action
 
-Keep the tone appropriate for a premium lumber buyer. Do not repeat the
+Keep the tone appropriate for a premium lumber buyer. The
 dimensions — those are handled by the template. Focus on the beauty and
 versatility of the slab.
 

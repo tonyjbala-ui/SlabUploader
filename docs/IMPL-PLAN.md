@@ -2,12 +2,11 @@
 
 Status: SPEC · Gate A freeze 2026-08-31 · hybrid rewrite complete 2026-09-01 · SlabUploader
 
-Phases 0–6 below are hybrid-aligned. Phase 2 remains a deferred stub only. Do not
-implement offline PWA, OCR, ruler, or any server happy-path measure/crop as SoT.
+Phases 0–6 below are hybrid-aligned. Phase 2 remains a deferred stub only; offline PWA, OCR, ruler, and server happy-path measure/crop as SoT are not implemented.
 
 The build plan a professional (or a fresh Hermes session) executes against. Each phase
 has: goal, deliverables, acceptance criteria (testable), and exit gate. Ordering is by
-dependency. Do not skip ahead. Definition of done for every phase: code + tests + real
+dependency. Definition of done for every phase: code + tests + real
 execution output in the PR/commit message + docs updated.
 
 Ground rules (from AGENTS.md):
@@ -36,20 +35,20 @@ Scope — in:
   pricing rec from species $/bdft, 3:4 PNG / 80% fill / ≥1600 guard (**no upscale**).
 - FastAPI: app factory, logging, config, `GET /api/health`, SQLite + alembic skeleton,
   settings stub with AES-GCM round-trip (secrets never returned on GET), draft store stub
-  (accept client numbers + files — store only, do not recompute SoT).
+  (accept client numbers + files — store only, no server-side recompute of SoT).
 - `deploy/docker-compose.yml`, `Caddyfile.fragment`, `.env.example` (placeholders only).
 - Unit tests for TECH-SPEC **TV-1 through TV-10** (esp. TV-3 bdft, TV-6/7 crop/no-upscale,
   TV-8 pricing, TV-10 rounding).
 - Fixture photo set for Ty Gate B review.
 
-Scope — out:
+Phase 0 covers:
 
-- Server happy-path pipeline / CLI that recomputes mask/crop/bdft as SoT.
-- Real U2Net (stub OK; on-demand later).
-- Woo create/publish and live taxonomy sync (Phase 1). Species offered in UI, pricing seeds, and Call 1 are **exactly** Woo-synced species-category leaves (CONTENT-WOO §2.2 / AGENTS §6 / DATA-MODEL `woo_categories`). No mock, seed, hardcoded, or fallback species list in this phase or later.
-- Inference Call 1/2, LoRA.
-- Offline PWA, IndexedDB sync, OCR, ruler.
-- Fake upscale / inventing pixels.
+- Server happy-path pipeline / CLI that recomputes mask/crop/bdft as SoT: client is authoritative; server stores client-sent numbers only.
+- Real U2Net: stub OK; on-demand later. The one-photo server path stays in architecture.
+- Woo create/publish and live taxonomy sync: Phase 1. Species offered in UI, pricing seeds, and Call 1 are **exactly** Woo-synced species-category leaves (CONTENT-WOO §2.2 / AGENTS §6 / DATA-MODEL `woo_categories`).
+- Inference Call 1/2, LoRA: Phase 5.
+- Offline PWA, IndexedDB sync, OCR, ruler: Phase 2 (deferred stub).
+- Fake upscale / inventing pixels: undersized source warns and requires retake.
 
 Deliverables:
 
@@ -140,11 +139,11 @@ Exit gate: Ty drives the API with curl through a full calibrated → ready cycle
 
 ## Phase 2 — Deferred: offline PWA / OCR / ruler (stub only)
 
-**Deferred post-POC.** Do not implement for the online-only MVP.
+**Deferred post-POC.** The online-only MVP does not implement offline capture.
 
 Capture UX for POC lives in early Phase 1 / Gate C (online hybrid). See AGENTS.md §2.
 
-Out of scope until a later product decision reopens offline:
+Offline PWA, OCR, and ruler detection are deferred to a later product decision:
 
 - Workbox service worker, IndexedDB draft sync, airplane-mode capture
 - Tesseract.js OCR for SKU
@@ -321,7 +320,7 @@ Exit gate: Ty signs off on UAT results; v1 declared done.
 | Host port/Caddy collision with co-resident apps (e.g. bolt.diy) | deploy conflict | Phase 0/6 inventory worksheet before any port bind |
 
 Ruler detection is **deferred** with offline/OCR (Phase 2 stub). Manual length is
-authoritative for POC. Do not treat ruler confidence as a POC risk row.
+authoritative for POC. Ruler confidence is not a POC risk row.
 
 ---
 
@@ -332,4 +331,4 @@ authoritative for POC. Do not treat ruler confidence as a POC risk row.
 - `pytest` + integration + UAT green; inference-off path green.
 - Deployed on the inventoried host (`APP_HOSTNAME` from `deploy/INVENTORY.md`), HTTPS, backed up, restore tested, runbook + key-rotation verified.
 - Repo on gitea-atd (`Ty_Tech/SlabUploader`) is source of truth; docs current.
-- Do not treat `docs/archive/PRD-2026-08.txt` as implementation SoT.
+- `docs/archive/PRD-2026-08.txt` is frozen history only; live docs are the implementation SoT.

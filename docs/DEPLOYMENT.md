@@ -6,15 +6,15 @@ Status: SPEC · env-agnostic · 2026-09-01 · SlabUploader
 Variables: `APP_HOST`, `APP_HOSTNAME`, `FRONTEND_PORT`, `FASTAPI_PORT`.
 Health URL: `https://${APP_HOSTNAME}/api/health`.
 
-> Gate A freeze (2026-08-31): hybrid client owns measure/crop SoT. Do not scaffold a
+> Gate A freeze (2026-08-31): hybrid client owns measure/crop SoT. Server-side measure/crop scaffolding is not done.
 > server ruler/pipeline as authoritative. Woo UAT = draft + `SLAB-UAT-*` on PROD.
 > Inference is **not** on the app host by default. It is a remote configurable endpoint.
 
 **Historical lab example (non-normative):** TyUBUMini at `192.168.1.201` with hostname
-`slab.tyubumini.local` was one early candidate. Do not treat that IP or name as SoT.
+`slab.tyubumini.local` was one early candidate. The inventory worksheet determines the host.
 Use the inventory worksheet.
 
-## 1. Host inventory (do first — do not assume)
+## 1. Host inventory (required before deployment)
 
 Before deploying, fill `deploy/INVENTORY.md` (hard rule: inventory before execute):
 
@@ -128,7 +128,7 @@ catch-all. Put `handle /api/*` **before** the frontend `handle` block:
 1. Store must already be on **HTTPS**. WordPress will not offer Application
    Passwords over plain HTTP.
 2. Create a dedicated low-privilege WordPress user (shop manager, or custom role
-   with product create/edit + media upload). Do not reuse an admin login.
+   with product create/edit + media upload). Admin logins are not reused.
 3. Sign in as that user → **Users → Profile → Application Passwords** → generate
    a password for "SlabUploader".
 4. Enter the username + application password in the app Settings UI. FastAPI
