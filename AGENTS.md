@@ -39,9 +39,9 @@ Run `docs/checks/check-structure.sh` after doc structure edits. It pins ownershi
 
 ## 0b. Gates and phases
 
-Gate A is the docs freeze (this tree). Gate B is host inventory plus the Phase 0 deploy skeleton. Gate C is the first Woo draft listing with inference OFF (early Phase 1).
+**Phase 0 = Gates A+B. Gate C = early Phase 1.** Call 1/2 only after Gate C is green, still inside POC.
 
-**Phase 0 = Gates A+B. Gate C = early Phase 1.** Call 1/2 only after Gate C is green, still inside POC. Gate meanings, phase deliverables, and exit gates live only in `docs/IMPL-PLAN.md`. Do not re-teach that map elsewhere.
+The Gate A/B/C meanings table and phase deliverables live in `docs/IMPL-PLAN.md` §Gates. Other docs may name a gate or map test cases to a phase. They must not copy the meanings table.
 
 ### Freeze provenance (Gate A)
 

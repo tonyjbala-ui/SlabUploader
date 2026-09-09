@@ -20,7 +20,7 @@ Test specification: `docs/TEST-SPEC.md` — pyramid cases, phased by gate, affir
 
 ## Gates (human map)
 
-This file is the only place that defines Gate meanings and how they map onto phases. Other docs may name a gate; they must not restate this table.
+This file owns the Gate A/B/C meanings table and phase deliverables. Other docs may name a gate or map test cases to a phase (see `docs/TEST-SPEC.md` Gates and phase map). They must not copy this meanings table.
 
 | Label | Human name | What it means |
 |---|---|---|
