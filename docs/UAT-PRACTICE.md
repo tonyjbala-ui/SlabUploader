@@ -224,4 +224,4 @@ is gated on your review of one real listing.
 | Board feet identity | `docs/TECH-SPEC-PIPELINE.md` |
 | Duplicate SKU recovery | `docs/CONTENT-WOO.md` §2.5, `docs/UX.md` Publish |
 | PC browser compatibility | `docs/UX.md` Browser compatibility |
-| Gate C = early Phase 1 | `docs/IMPL-PLAN.md` Phase 1, `AGENTS.md` §0b |
+| Gate C = early Phase 1 | `docs/IMPL-PLAN.md` Gates map and Phase 1 |

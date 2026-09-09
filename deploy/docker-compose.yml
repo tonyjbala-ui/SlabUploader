@@ -1,5 +1,8 @@
-# Implementable compose for SlabUploader (docs/refactor-v2).
-# From repo root:
+# Implementable compose for SlabUploader.
+# Phase 0 deliverable targets: frontend/Dockerfile, backend/Dockerfile,
+# backend/app/prompts/, and deploy/.env.example are not yet in the tree on
+# docs-only main. This file pins their paths so scaffolding does not invent them.
+# From repo root (after those scaffolds exist):
 #   cp deploy/.env.example deploy/.env && chmod 600 deploy/.env
 #   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 # Bind loopback only. Caddy is the TLS edge. Services on the compose network

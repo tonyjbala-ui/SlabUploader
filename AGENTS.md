@@ -18,14 +18,18 @@ Status: **Gate A freeze** · signed 2026-08-31 PT · docs cut to `main` 2026-09-
 | `docs/CONTENT-WOO.md` | Listing copy and Woo payload |
 | `docs/PROMPTS.md` | Call 1 / Call 2 prompt files |
 | `docs/DEPLOYMENT.md` | Compose, Caddy, secrets placement, ops |
-| `docs/UX.md` | Presentation: what the mill owner sees and does |
+| `docs/UX.md` | Presentation: what the mill owner sees and does (signed) |
+| `docs/UX-DESIGN.md` | Non-normative wireframes only. `docs/UX.md` wins on any conflict. |
 | `docs/TEST-SPEC.md` | Engineer test bar: pyramid cases, phased by gate, through PROD |
 | `docs/UAT-PRACTICE.md` | Walkable practice UAT for `SLAB-UAT-*` |
-| `docs/IMPL-PLAN.md` | Phases 0–6. Phase 2 is a deferred stub (offline PWA / OCR / ruler). |
+| `docs/IMPL-PLAN.md` | Phases 0–6, Gates A/B/C meanings, exit gates. Phase 2 is a deferred stub. |
+| `deploy/INVENTORY.md` | Host worksheet before port bind (Gate B) |
 | `README.md` | Orientation only |
 | `docs/archive/PRD-2026-08.txt` | Frozen archive. Not a source for new work. |
 
 Live docs agree. If two live files disagree, that is a docs bug: fix the files, then continue.
+
+Run `docs/checks/check-structure.sh` after doc structure edits. It pins ownership, calendar home, and lock phrases.
 
 ### Known open gaps
 
@@ -33,15 +37,11 @@ Live docs agree. If two live files disagree, that is a docs bug: fix the files, 
 
 ---
 
-## 0b. Gates (human map)
+## 0b. Gates and phases
 
-| Label | Human name | What it means |
-|---|---|---|
-| Gate A | Docs freeze | Product locks written into the repo |
-| Gate B | Run-host setup | Inventory the real host, deploy skeleton |
-| Gate C | First draft listing | One Woo draft listing with inference OFF |
+**Phase 0 = Gates A+B. Gate C = early Phase 1.** Call 1/2 only after Gate C is green, still inside POC.
 
-Phase map: **Phase 0 = Gates A+B.** **Gate C = early Phase 1** claimable publish slice. Call 1/2 after Gate C, still inside POC. Depth: `docs/IMPL-PLAN.md`.
+The Gate A/B/C meanings table and phase deliverables live in `docs/IMPL-PLAN.md` §Gates. Other docs may name a gate or map test cases to a phase. They must not copy the meanings table.
 
 ### Freeze provenance (Gate A)
 
@@ -181,7 +181,7 @@ Slab `draft` is separate from Woo draft (`woo_create_status`).
 - No feature without a passing test and shown execution output (PR/commit message).
 - Deterministic core unit-tested before UI consumes it.
 - One phase = reviewable, shippable increment; Ty exit-gates phases.
-- Phase naming: Phase 0–6 stay delivery chapters. **Phase 0 = Gates A+B.** **Gate C = early Phase 1** claimable publish slice.
+- Phase and gate naming: follow `docs/IMPL-PLAN.md` only (§0b).
 - Secrets, real Woo application passwords, and AES keys stay out of the repo.
 
 ---

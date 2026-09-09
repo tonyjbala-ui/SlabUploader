@@ -38,13 +38,13 @@ SlabUploader/
 ├── README.md
 ├── docs/                          # this plan set
 ├── deploy/
-│   ├── docker-compose.yml
+│   ├── docker-compose.yml         # checked in; build contexts point at Phase 0 deliverables
 │   ├── Caddyfile.fragment         # slab site block (merged into host Caddy)
 │   ├── INVENTORY.md               # filled at Gate B on the designated host
-│   ├── .env.example               # SLAB_AES_KEY, APP_*, WOO_BASE_URL (https only)
-│   └── backup.sh                  # sqlite .backup + images tar, with retention
-├── frontend/                      # SvelteKit app
-└── backend/                       # FastAPI app
+│   ├── .env.example               # Phase 0 deliverable (SLAB_AES_KEY, APP_*, WOO_BASE_URL)
+│   └── backup.sh                  # Phase 0/6 deliverable (sqlite .backup + images tar)
+├── frontend/                      # Phase 0 deliverable — SvelteKit app (not yet in tree on docs-only main)
+└── backend/                       # Phase 0 deliverable — FastAPI app (not yet in tree on docs-only main)
     ├── app/
     │   ├── main.py
     │   ├── (no happy-path pipeline SoT here)  # hybrid: TECH-SPEC modules live in frontend/ or shared pure TS; backend = store/Woo/inference/U2Net stub
@@ -58,10 +58,13 @@ SlabUploader/
     └── Dockerfile
 ```
 
+The layout above is the **scaffold target**. On docs-only `main`, `frontend/`, `backend/`, `deploy/.env.example`, and `deploy/backup.sh` are not yet in the tree. Compose still names those build contexts so Phase 0 does not invent paths.
+
 ## 3. docker-compose.yml (checked in)
 
-Canonical file: `deploy/docker-compose.yml`. Placeholders: `deploy/.env.example`.
-From **repo root**:
+Canonical file: `deploy/docker-compose.yml`. Placeholders: `deploy/.env.example` (Phase 0 deliverable).
+Compose `build.dockerfile` paths are **Phase 0 deliverable targets**, not proof the Dockerfiles exist yet.
+From **repo root** (after Phase 0 scaffolds exist):
 
 ```
 cp deploy/.env.example deploy/.env && chmod 600 deploy/.env

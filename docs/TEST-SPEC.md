@@ -53,15 +53,19 @@ Other abbreviations used in this document:
 
 ## 2. How cases are executed
 
-Test automation lives in the repo under `backend/tests/` and `frontend/e2e/`. The harness uses:
+This file is the engineer bar. It is not proof that the harness tree exists yet.
+
+On docs-only `main`, `frontend/` and `backend/` are **not yet on this branch**. Paths below are **Phase 0 deliverable targets** until the code lands. Until then every Phase 0 (and earlier) case stays `not run`. Do not treat `frontend/e2e/` or `backend/tests/` as present. Do not invent a different test layout (for example `frontend/test/bvt/`) to satisfy this bar.
+
+When code lands, automation lives under:
 
 - **Unit tests**: `backend/tests/unit/` (pytest) and `frontend/src/__tests__/` (Vitest). These run against pure modules with no network calls.
 - **API contract tests**: `backend/tests/contract/` (pytest + `httpx` TestClient). These hit the FastAPI app through its test client, asserting request/response shape, status codes, and revision handling.
 - **Integration tests**: `backend/tests/integration/` (pytest + `httpx` TestClient + `respx` WooCommerce mock). These verify Woo create, duplicate SKU, taxonomy sync, stale-field recovery, and settings encryption round-trips without touching a real store.
 - **UI end-to-end tests**: `frontend/e2e/` (Playwright). These exercise the full browser flow: capture, mask knobs, axis confirm, numbers entry, review, and publish. They run against a started Docker Compose stack with the FastAPI test server and mocked Woo endpoints.
-- **Ops / deployment tests**: `deploy/tests/` (shell scripts). These verify compose health, backup/restore, and Caddy routing.
+- **Ops / deployment tests**: `deploy/tests/` (shell scripts). These verify compose health, backup/restore, and Caddy routing. `docs/checks/check-structure.sh` is a docs-structure pin and may run before app code exists.
 
-Test dependencies are pinned in `backend/tests/requirements-test.txt` and `frontend/package.json` (devDependencies). CI runs the full suite before any merge; the suite must pass with inference disabled.
+Test dependencies are pinned in `backend/tests/requirements-test.txt` and `frontend/package.json` (devDependencies) when those packages exist. CI runs the full suite before any merge once the tree has code; the suite must pass with inference disabled.
 
 ---
 
