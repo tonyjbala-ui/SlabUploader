@@ -25,7 +25,7 @@ This file is the only place that defines Gate meanings and how they map onto pha
 | Label | Human name | What it means |
 |---|---|---|
 | Gate A | Docs freeze | Product locks written into the repo |
-| Gate B | Run-host setup | Inventory the real host, deploy skeleton (`frontend/` + `backend/` + compose targets) |
+| Gate B | Run-host setup | Inventory the real host, deploy skeleton |
 | Gate C | First draft listing | One Woo draft listing with inference OFF |
 
 **Phase 0 = Gates A+B.** **Gate C = early Phase 1** claimable publish slice. Call 1/2 after Gate C is green, still inside POC. Phase 2 is a deferred stub; do not build it next after Phase 1.

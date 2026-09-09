@@ -64,10 +64,17 @@ else
   bad "TEST-SPEC §2 must say frontend/e2e and backend/tests are targets until code exists"
 fi
 
-if grep -Eqi 'Phase 0 deliverable|not (yet )?in (the )?tree|aspirational|scaffold target' deploy/docker-compose.yml docs/DEPLOYMENT.md; then
-  ok "deploy docs label missing tree paths as Phase 0 targets"
+for f in deploy/docker-compose.yml docs/DEPLOYMENT.md; do
+  if grep -Eqi 'Phase 0 deliverable|not (yet )?in (the )?tree|aspirational|scaffold target' "$f"; then
+    ok "$f labels Phase 0 scaffold targets"
+  else
+    bad "$f must label frontend/backend paths as Phase 0 targets"
+  fi
+done
+if grep -Eqi 'Phase 0|check-structure|IMPL-PLAN' README.md; then
+  ok "README points at Phase 0 / structure pin / IMPL-PLAN"
 else
-  bad "compose or DEPLOYMENT must label frontend/backend Dockerfiles as Phase 0 targets"
+  bad "README must point at Phase 0 build path or check-structure"
 fi
 
 while IFS= read -r phrase; do
@@ -82,7 +89,7 @@ bdft = sqft × thickness_in
 SLAB-UAT-*
 WOO_BASE_URL
 https://
-authoritative for math
+is authoritative for math; server **stores** client-sent numbers
 Confidence 0.7
 draft → calibrated → ready → publishing → published
 LOCKS
