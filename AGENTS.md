@@ -24,6 +24,7 @@ Status: **Gate A freeze** · signed 2026-08-31 PT · docs cut to `main` 2026-09-
 | `docs/UAT-PRACTICE.md` | Walkable practice UAT for `SLAB-UAT-*` |
 | `docs/IMPL-PLAN.md` | Phases 0–6, Gates A/B/C meanings, exit gates. Phase 2 is a deferred stub. |
 | `deploy/INVENTORY.md` | Host worksheet before port bind (Gate B) |
+| `deploy/RELEASE-PROCESS.md` | Release, deploy, and promotion process (Gitea releases to UAT) |
 | `README.md` | Orientation only |
 | `docs/archive/PRD-2026-08.txt` | Frozen archive. Not a source for new work. |
 
