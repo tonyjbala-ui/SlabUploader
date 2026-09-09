@@ -1,7 +1,8 @@
-# UX Design — SlabUploader Phone App
+# UX Design — wireframes (non-normative)
 
-Status: DESIGN · 2026-09-03 · SlabUploader
-Screens for the online-only POC flow. Mobile-first, 375px viewport.
+Status: DESIGN · non-normative · 2026-09-03 · SlabUploader
+
+**Not normative.** Signed presentation SoT is `docs/UX.md` (phone and PC browsers). If a wireframe here disagrees with `docs/UX.md`, AGENTS, or TECH-SPEC, follow those and ignore the wireframe. These ASCII screens are layout sketches for discussion, drawn at a 375px phone width; they do not lock mobile-only or override the phone+PC matrix.
 
 Functional rules live in `docs/UX.md`. Confidence gating: `AGENTS.md` §6.
 Data model and status machine: `docs/DATA-MODEL.md`.

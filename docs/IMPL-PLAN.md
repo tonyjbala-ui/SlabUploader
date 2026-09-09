@@ -18,6 +18,18 @@ Ground rules (from AGENTS.md):
 
 Test specification: `docs/TEST-SPEC.md` — pyramid cases, phased by gate, affirmative only.
 
+## Gates (human map)
+
+This file is the only place that defines Gate meanings and how they map onto phases. Other docs may name a gate; they must not restate this table.
+
+| Label | Human name | What it means |
+|---|---|---|
+| Gate A | Docs freeze | Product locks written into the repo |
+| Gate B | Run-host setup | Inventory the real host, deploy skeleton (`frontend/` + `backend/` + compose targets) |
+| Gate C | First draft listing | One Woo draft listing with inference OFF |
+
+**Phase 0 = Gates A+B.** **Gate C = early Phase 1** claimable publish slice. Call 1/2 after Gate C is green, still inside POC. Phase 2 is a deferred stub; do not build it next after Phase 1.
+
 ---
 
 ## Phase 0 — Hybrid skeleton and client deterministic core (= Gates A+B)
