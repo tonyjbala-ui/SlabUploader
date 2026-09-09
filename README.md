@@ -16,21 +16,21 @@ Build order is in `docs/IMPL-PLAN.md`. Empty app on the real host first, then th
 
 ## Documentation
 
+Ownership detail lives in `AGENTS.md` §0. Short map:
+
 | File | What |
 |---|---|
 | `AGENTS.md` | Hard rules. Read first. |
-| `docs/ARCHITECTURE.md` | Hybrid topology, what runs where, secrets, status machine |
-| `docs/TECH-SPEC-PIPELINE.md` | Math, image pipeline, constants, test vectors TV-1–TV-10 |
-| `docs/DATA-MODEL.md` | SQLite tables, slab statuses, settings |
-| `docs/OPENAPI.md` | Browser to server API |
-| `docs/CONTENT-WOO.md` | Titles, descriptions, WooCommerce payload |
-| `docs/PROMPTS.md` | Call 1 / Call 2 prompt files (server text files) |
-| `docs/DEPLOYMENT.md` | Compose, Caddy, secrets placement, ops |
-| `docs/UX.md` | Presentation: what the mill owner sees and does |
+| `docs/IMPL-PLAN.md` | What to build next (phases, Gates A/B/C, exit gates) |
+| `docs/TECH-SPEC-PIPELINE.md` | Math, image pipeline, TV-1–TV-10 |
+| `docs/ARCHITECTURE.md` | Hybrid topology, secrets why, status machine |
+| `docs/UX.md` | Signed mill-owner presentation (phone and PC) |
+| `docs/TEST-SPEC.md` | Engineer test bar (cases stay `not run` until code exists) |
 | `docs/UAT-PRACTICE.md` | Walkable practice UAT for `SLAB-UAT-*` |
-| `docs/IMPL-PLAN.md` | Phases 0–6, exit gates, deferred stub (Phase 2) |
 | `deploy/INVENTORY.md` | Host worksheet before binding ports |
 | `docs/archive/PRD-2026-08.txt` | Frozen history, not a source for new work |
+
+`docs/UX-DESIGN.md` is non-normative wireframes. `docs/UX.md` wins on conflict.
 
 ## Short map
 
@@ -50,7 +50,7 @@ Source of truth: Gitea `Ty_Tech/SlabUploader` on gitea-atd
 
 ## Getting started
 
-1. Read `AGENTS.md` and Phase 0 in `docs/IMPL-PLAN.md`.
-2. Build the client math modules and a thin FastAPI health/settings app. Measuring lives in the browser.
-3. Ty signs each phase.
-4. Live docs on `main` are the source of truth. The archive PRD is frozen history only.
+1. Read `AGENTS.md` (locks) and `docs/IMPL-PLAN.md` Phase 0 (build next).
+2. Run `docs/checks/check-structure.sh` if you change doc ownership or calendar homes.
+3. Scaffold `frontend/` and `backend/` per Phase 0. Measuring lives in the browser. Compose paths are already pinned.
+4. Ty signs each phase. Live docs on `main` are the source of truth. The archive PRD is frozen history only.
