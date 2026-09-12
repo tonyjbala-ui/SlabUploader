@@ -10,6 +10,9 @@
 		postCalibratedDraft,
 		type PhotoMeta
 	} from '$lib/capture/api.js';
+	import { decodeSourceToImageData } from '$lib/capture/decode-source.js';
+	import { type MaskRunResult } from '$lib/capture/mask-bridge.js';
+	import { drawMaskOverlay } from '$lib/capture/overlay.js';
 	import { computeBdft, computeScale, computeSqft } from '$lib/math/area.js';
 	import { confirmAxis, pickLengthAxis, type AxisBox } from '$lib/math/axis.js';
 	import { summarizeWidths, type WidthSample } from '$lib/math/widths.js';
@@ -39,6 +42,55 @@
 	let submitting = $state(false);
 	let submitMsg = $state<string | null>(null);
 	let submitErr = $state<string | null>(null);
+
+	/** Decoded pixels from photos[0] for mask-bridge runMask. */
+	let sourcePixels = $state<ImageData | null>(null);
+	let decodeErr = $state<string | null>(null);
+	let maskLive = $state(false);
+	let lastMask = $state<NonNullable<MaskRunResult['result']> | null>(null);
+	let overlayCanvas = $state<HTMLCanvasElement | null>(null);
+
+	$effect(() => {
+		const photo = photos[0] ?? null;
+		lastMask = null;
+		if (!photo) {
+			sourcePixels = null;
+			decodeErr = null;
+			return;
+		}
+		let cancelled = false;
+		decodeErr = null;
+		decodeSourceToImageData(photo.file)
+			.then((img) => {
+				if (!cancelled) sourcePixels = img;
+			})
+			.catch((e) => {
+				if (cancelled) return;
+				sourcePixels = null;
+				decodeErr = e instanceof Error ? e.message : 'Failed to decode photo';
+			});
+		return () => {
+			cancelled = true;
+		};
+	});
+
+	function onMaskRun(result: MaskRunResult) {
+		if (result.live && result.maskPixelCount !== null) {
+			maskPixelCount = result.maskPixelCount;
+			maskLive = true;
+			lastMask = result.result;
+			return;
+		}
+		if (maskLive) {
+			maskPixelCount = null;
+			maskLive = false;
+		}
+		lastMask = result.result;
+	}
+
+	$effect(() => {
+		drawMaskOverlay(overlayCanvas, lastMask);
+	});
 
 	// Recompute derived numbers from Lane A math when inputs exist.
 	$effect(() => {
@@ -107,6 +159,7 @@
 		// 0.64 sqft @ 96" with scale = 1000/96 ⇒ pixels = 0.64*144*(1000/96)^2
 		const scale = computeScale(axisPx, lengthIn);
 		maskPixelCount = Math.round(0.64 * 144 * scale * scale);
+		maskLive = false;
 		maskConfirmed = true;
 		onConfirmAxis();
 		const samples: WidthSample[] = [
@@ -180,23 +233,30 @@
 <div class="block overlay-placeholder" aria-label="Mask overlay">
 	<h2>Mask overlay</h2>
 	<p class="hint">
-		Overlay draws on the source photo once Lane A image mask lands. Knobs already call the UI mask
-		bridge for live re-run.
+		Live mask overlay on the selected photo. Tune knobs to re-run; confirm when the edge looks right.
 	</p>
 	<div class="preview">
 		{#if photos[0]}
-			<img src={photos[0].url} alt="Source for mask overlay" />
+			<div class="stack">
+				<img src={photos[0].url} alt="Source for mask overlay" />
+				<canvas bind:this={overlayCanvas} class="mask-overlay" aria-hidden="true"></canvas>
+			</div>
 		{:else}
 			<span class="muted">Add a photo to preview overlay</span>
 		{/if}
 	</div>
+	{#if decodeErr}
+		<p class="err">{decodeErr}</p>
+	{:else if maskLive && maskPixelCount !== null}
+		<p class="hint live">Live mask · {maskPixelCount} px</p>
+	{/if}
 	<label class="check">
 		<input type="checkbox" bind:checked={maskConfirmed} disabled={submitting} />
 		Mask edge looks right (confirm)
 	</label>
 </div>
 
-<CaptureKnobs bind:knobs bind:maskNote />
+<CaptureKnobs bind:knobs bind:maskNote source={sourcePixels} onrun={onMaskRun} />
 
 <section class="block" aria-labelledby="axis-heading">
 	<h2 id="axis-heading">Length axis</h2>
@@ -229,6 +289,8 @@
 			</button>
 			to exercise Math imports until CV lands.
 		</p>
+	{:else if maskLive}
+		<p class="hint">Using live mask pixel count ({maskPixelCount} px).</p>
 	{/if}
 </section>
 
@@ -271,14 +333,31 @@
 		background: var(--panel);
 		margin-bottom: 0.75rem;
 	}
-	.preview img {
+	.stack {
+		position: relative;
+		display: inline-block;
+		max-width: 100%;
+	}
+	.preview img,
+	.preview canvas.mask-overlay {
+		display: block;
 		max-width: 100%;
 		max-height: 16rem;
 		object-fit: contain;
 	}
+	.preview canvas.mask-overlay {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+	}
 	.muted {
 		color: var(--muted);
 		font-size: 0.85rem;
+	}
+	.hint.live {
+		margin-bottom: 0.65rem;
 	}
 	.check {
 		display: flex;

@@ -1,0 +1,15 @@
+﻿# Keep Windows host deps out of Linux image builds
+**/node_modules
+**/.venv
+**/venv
+**/.svelte-kit
+**/build
+**/dist
+**/.pytest_cache
+**/__pycache__
+**/.git
+**/*.db
+backend/local-images
+backend/local.db
+deploy/.env
+deploy/compose-smoke.log

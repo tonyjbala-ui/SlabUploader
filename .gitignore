@@ -46,3 +46,8 @@ frontend/node_modules/
 frontend/.svelte-kit/
 frontend/build/
 frontend/.vite/
+
+# Local uvicorn smoke redirect logs
+backend/uvicorn-smoke*
+
+deploy/compose-smoke.log

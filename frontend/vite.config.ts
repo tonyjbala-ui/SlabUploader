@@ -1,12 +1,13 @@
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 /**
  * Dev proxy: browser calls relative `/api` (and `/api/v1/...`).
  * Vite forwards to the FastAPI backend (default http://127.0.0.1:8000).
- * Production: Caddy (or compose) should reverse-proxy `/api` the same way —
- * see docs/DEPLOYMENT.md. Do not hardcode the API host in client fetch URLs.
+ * Production: Caddy (or compose nginx in frontend image) reverse-proxies `/api`
+ * the same way — see docs/DEPLOYMENT.md and frontend/nginx.conf.
+ * Do not hardcode the API host in client fetch URLs.
  */
 export default defineConfig({
 	plugins: [
@@ -17,10 +18,14 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 
-			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-			adapter: adapter()
+			// Static build for nginx:80 (compose FRONTEND_PORT → container :80).
+			adapter: adapter({
+				pages: 'build',
+				assets: 'build',
+				fallback: undefined,
+				precompress: false,
+				strict: true
+			})
 		})
 	],
 	server: {

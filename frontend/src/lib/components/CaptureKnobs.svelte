@@ -2,6 +2,7 @@
  * Four knobs chrome (sheet / sensitivity / edge / feather). Live re-run via mask-bridge.
  */
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import {
 		type KnobState,
 		loadKnobs,
@@ -12,17 +13,20 @@
 
 	let {
 		knobs = $bindable(loadKnobs()),
-		maskNote = $bindable('')
+		maskNote = $bindable(''),
+		source = null as ImageData | null,
+		onrun
 	}: {
 		knobs?: KnobState;
 		maskNote?: string;
+		/** Decoded pixels from the selected photo; null until a photo is ready. */
+		source?: ImageData | null;
+		onrun?: (result: MaskRunResult) => void;
 	} = $props();
 
 	function apply(next: KnobState) {
 		knobs = next;
 		saveKnobs(next);
-		const result: MaskRunResult = rerunMask(next, null);
-		maskNote = result.message;
 	}
 
 	function onSheet(ev: Event) {
@@ -47,9 +51,13 @@
 	}
 
 	$effect(() => {
-		if (!maskNote) {
-			maskNote = rerunMask(knobs, null).message;
-		}
+		const k = knobs;
+		const src = source;
+		untrack(() => {
+			const result = rerunMask(k, src);
+			maskNote = result.message;
+			onrun?.(result);
+		});
 	});
 </script>
 
@@ -58,7 +66,9 @@
 		<h2 id="knobs-heading">Mask knobs</h2>
 		<button type="button" class="secondary" onclick={onReset}>Reset defaults</button>
 	</div>
-	<p class="hint">Changes re-run background removal immediately (client-side). Overlay refreshes when mask CV runMask is wired.</p>
+	<p class="hint">
+		Changes re-run background removal immediately (client-side) on the selected photo.
+	</p>
 
 	<div class="knobs">
 		<label>
