@@ -35,3 +35,14 @@ images/
 
 # Logs
 *.log
+
+# Phase 0 local artifacts
+backend/.venv/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/local.db
+backend/local-images/
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/
+frontend/.vite/
